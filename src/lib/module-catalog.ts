@@ -19,7 +19,7 @@ export type TrainingPoolEntry = {
 export type ModuleItemDefinition = {
   id: string;
   ageBand: ModuleAgeBand[];
-  contentGroup?: "M5-A" | "M5-B";
+  contentGroup?: string;
   prompt: string;
   promptSequence?: string[];
   promptAudio: string | null;
@@ -214,4 +214,85 @@ export function getModuleReviewFlags(moduleCode: string, ageYears?: number) {
   }
 
   return flags;
+}
+
+export function getM3RValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M3-R", ageYears);
+
+  if (!definition) {
+    return ["M3-R manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+  const checkItems = [...definition.practiceItems, ...definition.testItems];
+
+  for (const item of checkItems) {
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+
+    if ((item.promptSequence?.length ?? 0) < 2) {
+      issues.push(`${item.id}: reverse-memory sequence should include at least 2 heard items.`);
+    }
+
+    if (!item.correctAnswer.includes(",")) {
+      issues.push(`${item.id}: reverse-memory answer should encode an ordered sequence.`);
+    }
+  }
+
+  return issues;
+}
+
+export function getM4ValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M4", ageYears);
+
+  if (!definition) {
+    return ["M4 manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+  const checkItems = [...definition.practiceItems, ...definition.testItems];
+  const maxPatternLength = ageYears === 6 ? 4 : 3;
+
+  for (const item of checkItems) {
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+
+    if (
+      item.contentGroup !== "length_pattern" &&
+      item.contentGroup !== "pitch_pattern"
+    ) {
+      issues.push(`${item.id}: M4 items must declare length_pattern or pitch_pattern.`);
+    }
+
+    const patternLength = item.promptSequence?.length ?? 0;
+    if (patternLength < 2) {
+      issues.push(`${item.id}: M4 items should include at least a 2-step pattern.`);
+    }
+    if (patternLength > maxPatternLength) {
+      issues.push(
+        `${item.id}: pattern length ${patternLength} exceeds age ${ageYears} maximum of ${maxPatternLength}.`,
+      );
+    }
+  }
+
+  return issues;
+}
+
+export function getModuleSubtypeBreakdown(moduleCode: string, ageYears?: number) {
+  const definition = getModuleDefinition(moduleCode, ageYears);
+
+  if (!definition) {
+    return {} as Record<string, number>;
+  }
+
+  return [...definition.practiceItems, ...definition.testItems].reduce<Record<string, number>>(
+    (accumulator, item) => {
+      const key = item.contentGroup ?? "unspecified";
+      accumulator[key] = (accumulator[key] ?? 0) + 1;
+      return accumulator;
+    },
+    {},
+  );
 }

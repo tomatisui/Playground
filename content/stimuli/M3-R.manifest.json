@@ -4,76 +4,186 @@
   "implemented": true,
   "ageBand": [6],
   "playbackType": "tts",
-  "instructions": "듣고 난 뒤 거꾸로 된 순서를 고르세요.",
+  "instructions": "말을 잘 듣고 거꾸로 고르세요. 마지막에 들은 말을 먼저 선택하면 됩니다.",
+  "trainingPool": [
+    {
+      "label": "공",
+      "imageKey": "ball",
+      "localAudioPath": "content/audio/m3r/pool-ball.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "눈",
+      "imageKey": "snow",
+      "localAudioPath": "content/audio/m3r/pool-snow.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "밥",
+      "imageKey": "rice",
+      "localAudioPath": "content/audio/m3r/pool-rice.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "집",
+      "imageKey": "house",
+      "localAudioPath": "content/audio/m3r/pool-house.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "책",
+      "imageKey": "book",
+      "localAudioPath": "content/audio/m3r/pool-book.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "문",
+      "imageKey": "door",
+      "localAudioPath": "content/audio/m3r/pool-door.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    },
+    {
+      "label": "물",
+      "imageKey": "water",
+      "localAudioPath": "content/audio/m3r/pool-water.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Shared M3/M3-R prototype noun pool entry."
+    }
+  ],
   "practiceItems": [
     {
       "id": "m3r-p1",
       "ageBand": [6],
-      "prompt": "해, 비",
+      "contentGroup": "reverse_sequence",
+      "prompt": "공, 집. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["공", "집"],
       "promptAudio": null,
-      "choices": ["해, 비", "비, 해", "비, 눈"],
+      "localAudioPath": "content/audio/m3r/m3r-p1.wav",
+      "choices": ["집, 공", "공, 집", "공, 눈"],
+      "choiceImageKeys": ["house-ball", "ball-house", "ball-snow"],
       "choiceImages": [],
-      "correctAnswer": "비, 해",
-      "difficultyLevel": "practice",
+      "correctAnswer": "집, 공",
+      "difficultyLevel": "practice_reverse_example",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Practice round 1. Two-item reverse example using the shared noun pool."
     },
     {
       "id": "m3r-p2",
       "ageBand": [6],
-      "prompt": "가, 다, 라",
+      "contentGroup": "reverse_sequence",
+      "prompt": "눈, 문. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["눈", "문"],
       "promptAudio": null,
-      "choices": ["라, 다, 가", "가, 다, 라", "다, 가, 라"],
+      "localAudioPath": "content/audio/m3r/m3r-p2.wav",
+      "choices": ["눈, 문", "문, 눈", "문, 물"],
+      "choiceImageKeys": ["snow-door", "door-snow", "door-water"],
       "choiceImages": [],
-      "correctAnswer": "라, 다, 가",
-      "difficultyLevel": "practice",
+      "correctAnswer": "문, 눈",
+      "difficultyLevel": "practice_reverse_selection",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Practice round 2. Two-item reverse selection using the shared noun pool."
     }
   ],
   "testItems": [
     {
-      "id": "m3r-t1",
+      "id": "m3r-6-1",
       "ageBand": [6],
-      "prompt": "둘, 넷",
+      "contentGroup": "reverse_sequence",
+      "prompt": "물, 책. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["물", "책"],
       "promptAudio": null,
-      "choices": ["넷, 둘", "둘, 넷", "둘, 셋"],
+      "localAudioPath": "content/audio/m3r/m3r-6-1.wav",
+      "choices": ["책, 물", "물, 책", "책, 집"],
+      "choiceImageKeys": ["book-water", "water-book", "book-house"],
       "choiceImages": [],
-      "correctAnswer": "넷, 둘",
+      "correctAnswer": "책, 물",
       "difficultyLevel": "starter",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory starter item using a 2-item sequence."
     },
     {
-      "id": "m3r-t2",
+      "id": "m3r-6-2",
       "ageBand": [6],
-      "prompt": "나무, 꽃, 잎",
+      "contentGroup": "reverse_sequence",
+      "prompt": "공, 밥. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["공", "밥"],
       "promptAudio": null,
-      "choices": ["잎, 꽃, 나무", "나무, 꽃, 잎", "꽃, 잎, 나무"],
+      "localAudioPath": "content/audio/m3r/m3r-6-2.wav",
+      "choices": ["밥, 공", "공, 밥", "밥, 문"],
+      "choiceImageKeys": ["rice-ball", "ball-rice", "rice-door"],
       "choiceImages": [],
-      "correctAnswer": "잎, 꽃, 나무",
+      "correctAnswer": "밥, 공",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory starter item using a 2-item sequence."
+    },
+    {
+      "id": "m3r-6-3",
+      "ageBand": [6],
+      "contentGroup": "reverse_sequence",
+      "prompt": "집, 눈, 문. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["집", "눈", "문"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3r/m3r-6-3.wav",
+      "choices": ["문, 눈, 집", "집, 눈, 문", "눈, 문, 집"],
+      "choiceImageKeys": ["door-snow-house", "house-snow-door", "snow-door-house"],
+      "choiceImages": [],
+      "correctAnswer": "문, 눈, 집",
       "difficultyLevel": "core",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory core item using a 3-item sequence."
     },
     {
-      "id": "m3r-t3",
+      "id": "m3r-6-4",
       "ageBand": [6],
-      "prompt": "바다, 모래, 조개",
+      "contentGroup": "reverse_sequence",
+      "prompt": "문, 물, 공. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["문", "물", "공"],
       "promptAudio": null,
-      "choices": ["조개, 모래, 바다", "모래, 조개, 바다", "바다, 모래, 조개"],
+      "localAudioPath": "content/audio/m3r/m3r-6-4.wav",
+      "choices": ["공, 물, 문", "문, 물, 공", "물, 공, 문"],
+      "choiceImageKeys": ["ball-water-door", "door-water-ball", "water-ball-door"],
       "choiceImages": [],
-      "correctAnswer": "조개, 모래, 바다",
+      "correctAnswer": "공, 물, 문",
+      "difficultyLevel": "core_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory core item using a 3-item sequence."
+    },
+    {
+      "id": "m3r-6-5",
+      "ageBand": [6],
+      "contentGroup": "reverse_sequence",
+      "prompt": "공, 집, 책, 눈. 마지막에 들은 말을 먼저 고르세요.",
+      "promptSequence": ["공", "집", "책", "눈"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3r/m3r-6-5.wav",
+      "choices": ["눈, 책, 집, 공", "공, 집, 책, 눈", "책, 눈, 집, 공"],
+      "choiceImageKeys": ["snow-book-house-ball", "ball-house-book-snow", "book-snow-house-ball"],
+      "choiceImages": [],
+      "correctAnswer": "눈, 책, 집, 공",
       "difficultyLevel": "stretch",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory stretch item using a 4-item sequence."
     }
   ],
   "promptAudio": [],
   "choiceImages": [],
   "correctAnswer": null,
-  "difficultyLevel": "mixed",
+  "difficultyLevel": "prototype_pack",
   "placeholder": false,
-  "labels": ["content_not_final"],
-  "notes": "Age 6 only. Content is playable and manifest-backed, but still uses fallback speech synthesis instead of final recorded assets."
+  "labels": ["content_not_final", "provisional_prototype_content"],
+  "notes": "Age 6 only reverse-memory prototype content pack using the same familiar monosyllabic noun pool as M3. This content is for prototype testing only and still needs expert review."
 }

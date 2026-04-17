@@ -6,7 +6,10 @@ import {
   getContentAssetStatus,
   getModuleDefinition,
   getModuleManifest,
+  getM3RValidationIssues,
+  getM4ValidationIssues,
   getModuleReviewFlags,
+  getModuleSubtypeBreakdown,
   getM5ValidationIssues,
 } from "@/lib/module-catalog";
 import {
@@ -66,6 +69,19 @@ export default async function AdminPage() {
               session.moduleAttempts.find((attempt) => attempt.moduleCode === "M3") ??
               null;
             const m3ReviewFlags = getModuleReviewFlags("M3", session.ageYears);
+            const m3rDefinition = getModuleDefinition("M3-R", session.ageYears);
+            const m3rManifest = getModuleManifest("M3-R");
+            const m3rAttempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M3-R") ??
+              null;
+            const m3rValidationIssues =
+              session.ageYears === 6 ? getM3RValidationIssues(session.ageYears) : [];
+            const m4Definition = getModuleDefinition("M4", session.ageYears);
+            const m4Attempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M4") ??
+              null;
+            const m4ValidationIssues = getM4ValidationIssues(session.ageYears);
+            const m4SubtypeBreakdown = getModuleSubtypeBreakdown("M4", session.ageYears);
             const m5Definition = getModuleDefinition("M5", session.ageYears);
             const m5Manifest = getModuleManifest("M5");
             const m5Attempt =
@@ -264,6 +280,93 @@ export default async function AdminPage() {
                           <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
                             {m3ReviewFlags.map((flag) => (
                               <p key={flag}>{flag}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M3-R content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          Provisional prototype content:{" "}
+                          {m3rManifest?.labels.includes("provisional_prototype_content")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M3-R sequences delivered: {m3rAttempt?.itemCount ?? 0}
+                          {m3rDefinition ? ` / ${m3rDefinition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          M3-R fallback audio/content used:{" "}
+                          {getContentAssetStatus("M3-R", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M3-R content status: {getContentAssetStatus("M3-R", session.ageYears)}
+                        </p>
+                        <p>
+                          M3-R malformed sequence flags:{" "}
+                          {m3rValidationIssues.length === 0
+                            ? "none"
+                            : `${m3rValidationIssues.length} flag(s)`}
+                        </p>
+                        {m3rValidationIssues.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m3rValidationIssues.map((issue) => (
+                              <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M4 content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          M4 subtypes configured:{" "}
+                          {Object.entries(m4SubtypeBreakdown).length > 0
+                            ? Object.entries(m4SubtypeBreakdown)
+                                .map(([subtype, count]) => `${subtype} (${count})`)
+                                .join(", ")
+                            : "none"}
+                        </p>
+                        <p>
+                          M4 subtype run focus:{" "}
+                          {m4Definition
+                            ? Array.from(
+                                new Set(m4Definition.testItems.map((item) => item.contentGroup ?? "unspecified")),
+                              ).join(", ")
+                            : "unknown"}
+                        </p>
+                        <p>
+                          M4 pattern items delivered: {m4Attempt?.itemCount ?? 0}
+                          {m4Definition ? ` / ${m4Definition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          M4 fallback audio used:{" "}
+                          {getContentAssetStatus("M4", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M4 content status: {getContentAssetStatus("M4", session.ageYears)}
+                        </p>
+                        <p>
+                          M4 validation: {m4ValidationIssues.length === 0 ? "ok" : `${m4ValidationIssues.length} issue(s)`}
+                        </p>
+                        {m4ValidationIssues.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m4ValidationIssues.map((issue) => (
+                              <p key={issue}>{issue}</p>
                             ))}
                           </div>
                         ) : null}

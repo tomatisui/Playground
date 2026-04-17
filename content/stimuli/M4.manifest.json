@@ -4,76 +4,161 @@
   "implemented": true,
   "ageBand": [5, 6],
   "playbackType": "pattern",
-  "instructions": "소리 길이의 패턴을 듣고 같은 패턴을 고르세요.",
+  "instructions": "패턴을 잘 듣고 같은 패턴을 고르세요. 길이 패턴과 높낮이 패턴이 모두 나올 수 있습니다.",
+  "trainingPool": [
+    {
+      "label": "짧음",
+      "localAudioPath": "content/audio/m4/short.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Length-pattern training token."
+    },
+    {
+      "label": "길음",
+      "localAudioPath": "content/audio/m4/long.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Length-pattern training token."
+    },
+    {
+      "label": "높음",
+      "localAudioPath": "content/audio/m4/high.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Pitch-pattern training token."
+    },
+    {
+      "label": "낮음",
+      "localAudioPath": "content/audio/m4/low.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Pitch-pattern training token."
+    }
+  ],
   "practiceItems": [
     {
       "id": "m4-p1",
       "ageBand": [5, 6],
+      "contentGroup": "length_pattern",
       "prompt": "짧음-길음",
+      "promptSequence": ["짧음", "길음"],
       "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-p1.wav",
       "choices": ["짧음-길음", "길음-짧음", "짧음-짧음"],
+      "choiceImageKeys": ["short-long", "long-short", "short-short"],
       "choiceImages": [],
       "correctAnswer": "짧음-길음",
-      "difficultyLevel": "practice",
+      "difficultyLevel": "practice_two_item",
       "placeholder": false,
-      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Two-item practice round for length-pattern subtype."
     },
     {
       "id": "m4-p2",
       "ageBand": [5, 6],
-      "prompt": "길음-짧음-길음",
+      "contentGroup": "pitch_pattern",
+      "prompt": "높음-낮음",
+      "promptSequence": ["높음", "낮음"],
       "promptAudio": null,
-      "choices": ["길음-짧음-길음", "짧음-길음-짧음", "길음-길음-짧음"],
+      "localAudioPath": "content/audio/m4/m4-p2.wav",
+      "choices": ["높음-낮음", "낮음-높음", "높음-높음"],
+      "choiceImageKeys": ["high-low", "low-high", "high-high"],
       "choiceImages": [],
-      "correctAnswer": "길음-짧음-길음",
-      "difficultyLevel": "practice",
+      "correctAnswer": "높음-낮음",
+      "difficultyLevel": "practice_two_item",
       "placeholder": false,
-      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Two-item practice round for pitch-pattern subtype."
     }
   ],
   "testItems": [
     {
-      "id": "m4-t1",
+      "id": "m4-5-1",
       "ageBand": [5, 6],
+      "contentGroup": "length_pattern",
       "prompt": "짧음-짧음-길음",
+      "promptSequence": ["짧음", "짧음", "길음"],
       "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-5-1.wav",
       "choices": ["짧음-짧음-길음", "길음-짧음-짧음", "짧음-길음-짧음"],
+      "choiceImageKeys": ["short-short-long", "long-short-short", "short-long-short"],
       "choiceImages": [],
       "correctAnswer": "짧음-짧음-길음",
       "difficultyLevel": "starter",
       "placeholder": false,
-      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 length-pattern item with maximum length 3."
     },
     {
-      "id": "m4-t2",
+      "id": "m4-5-2",
       "ageBand": [5, 6],
-      "prompt": "길음-짧음-짧음",
+      "contentGroup": "pitch_pattern",
+      "prompt": "높음-낮음-높음",
+      "promptSequence": ["높음", "낮음", "높음"],
       "promptAudio": null,
-      "choices": ["짧음-짧음-길음", "길음-짧음-짧음", "짧음-길음-짧음"],
+      "localAudioPath": "content/audio/m4/m4-5-2.wav",
+      "choices": ["높음-낮음-높음", "낮음-높음-낮음", "높음-높음-낮음"],
+      "choiceImageKeys": ["high-low-high", "low-high-low", "high-high-low"],
       "choiceImages": [],
-      "correctAnswer": "길음-짧음-짧음",
+      "correctAnswer": "높음-낮음-높음",
       "difficultyLevel": "core",
       "placeholder": false,
-      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 pitch-pattern item with maximum length 3."
     },
     {
-      "id": "m4-t3",
+      "id": "m4-5-3",
       "ageBand": [5, 6],
-      "prompt": "짧음-길음-길음",
+      "contentGroup": "length_pattern",
+      "prompt": "길음-짧음-길음",
+      "promptSequence": ["길음", "짧음", "길음"],
       "promptAudio": null,
-      "choices": ["짧음-길음-길음", "길음-짧음-길음", "길음-길음-짧음"],
+      "localAudioPath": "content/audio/m4/m4-5-3.wav",
+      "choices": ["길음-짧음-길음", "짧음-길음-짧음", "길음-길음-짧음"],
+      "choiceImageKeys": ["long-short-long", "short-long-short", "long-long-short"],
       "choiceImages": [],
-      "correctAnswer": "짧음-길음-길음",
+      "correctAnswer": "길음-짧음-길음",
       "difficultyLevel": "stretch",
       "placeholder": false,
-      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 length-pattern item with maximum length 3."
+    },
+    {
+      "id": "m4-6-4",
+      "ageBand": [6],
+      "contentGroup": "pitch_pattern",
+      "prompt": "낮음-높음-높음-낮음",
+      "promptSequence": ["낮음", "높음", "높음", "낮음"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-6-4.wav",
+      "choices": ["낮음-높음-높음-낮음", "높음-낮음-높음-낮음", "낮음-높음-낮음-높음"],
+      "choiceImageKeys": ["low-high-high-low", "high-low-high-low", "low-high-low-high"],
+      "choiceImages": [],
+      "correctAnswer": "낮음-높음-높음-낮음",
+      "difficultyLevel": "core_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 pitch-pattern item with maximum length 4."
+    },
+    {
+      "id": "m4-6-5",
+      "ageBand": [6],
+      "contentGroup": "length_pattern",
+      "prompt": "길음-짧음-짧음-길음",
+      "promptSequence": ["길음", "짧음", "짧음", "길음"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-6-5.wav",
+      "choices": ["길음-짧음-짧음-길음", "짧음-길음-짧음-길음", "길음-짧음-길음-짧음"],
+      "choiceImageKeys": ["long-short-short-long", "short-long-short-long", "long-short-long-short"],
+      "choiceImages": [],
+      "correctAnswer": "길음-짧음-짧음-길음",
+      "difficultyLevel": "stretch_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 length-pattern item with maximum length 4."
     }
   ],
   "promptAudio": [],
   "choiceImages": [],
   "correctAnswer": null,
-  "difficultyLevel": "mixed",
+  "difficultyLevel": "prototype_pack",
   "placeholder": false,
-  "labels": ["content_not_final"],
-  "notes": "Content is playable and manifest-backed, but still uses fallback synthesized pattern playback instead of final audio assets."
+  "labels": ["content_not_final", "provisional_prototype_content"],
+  "notes": "Prototype M4 pattern-recognition content pack with explicit length-pattern and pitch-pattern subtypes, safe fallback synthesis, and age-based maximum pattern length."
 }

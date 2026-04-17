@@ -35,12 +35,19 @@ export function PlaybackButton({ playbackType, prompt }: PlaybackButtonProps) {
     const segments = pattern.split("-").map((segment) => segment.trim());
 
     for (const segment of segments) {
-      const duration = segment === "길음" ? 0.42 : 0.18;
+      const duration =
+        segment === "길음" ? 0.42
+        : segment === "짧음" ? 0.18
+        : 0.24;
+      const frequency =
+        segment === "높음" ? 880
+        : segment === "낮음" ? 440
+        : 660;
       const oscillator = context.createOscillator();
       const gain = context.createGain();
 
       oscillator.type = "sine";
-      oscillator.frequency.value = 660;
+      oscillator.frequency.value = frequency;
       gain.gain.value = 0.08;
 
       oscillator.connect(gain);
