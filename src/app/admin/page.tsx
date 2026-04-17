@@ -6,6 +6,7 @@ import {
   getContentAssetStatus,
   getModuleDefinition,
   getModuleManifest,
+  getM5ValidationIssues,
 } from "@/lib/module-catalog";
 import {
   getPrototypeGradeStatus,
@@ -63,6 +64,7 @@ export default async function AdminPage() {
             const m5Attempt =
               session.moduleAttempts.find((attempt) => attempt.moduleCode === "M5") ??
               null;
+            const m5ValidationIssues = getM5ValidationIssues(session.ageYears);
 
             return (
               <article
@@ -243,6 +245,16 @@ export default async function AdminPage() {
                         <p>
                           M5 content status: {getContentAssetStatus("M5", session.ageYears)}
                         </p>
+                        <p>
+                          M5 validation: {m5ValidationIssues.length === 0 ? "ok" : `${m5ValidationIssues.length} issue(s)`}
+                        </p>
+                        {m5ValidationIssues.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m5ValidationIssues.map((issue) => (
+                              <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     </div>
                   </div>

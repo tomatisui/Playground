@@ -1,81 +1,86 @@
 ## M5 Content Draft
 
-This document captures the first real prototype content pack for `M5` phonological awareness.
+This document captures the normalized prototype content pack for `M5` phonological awareness.
 
-## Scope
+## Prototype task structure
 
-`M5` is split into two prototype subtypes:
+`M5-A`: syllable-level odd-one-out
 
-- `M5-A`: syllable-level odd-one-out using familiar 2-syllable Korean nouns
-- `M5-B`: onset-phoneme odd-one-out using familiar 1-syllable Korean nouns
+- 4 spoken 2-syllable Korean words
+- 3 share the same first syllable
+- 1 is different
+- 4 visual choices
 
-This is prototype content only. It is not validated, normed, or diagnostic.
+`M5-B`: onset-phoneme odd-one-out
+
+- 3 spoken 1-syllable Korean words
+- 2 share the same onset consonant
+- 1 is different
+- 3 visual choices
+
+This is still `provisional_prototype_content`. It is not normed, validated, or diagnostic.
 
 ## Why these words were chosen
 
-- They are common concrete nouns likely to be familiar to many young children
-- They are usually easy to picture in simple icon form
+- They are concrete child-friendly nouns
+- Most are easy to picture with simple illustrations
 - They avoid abstract vocabulary
-- They keep the listening prompt short enough for mobile prototype testing
+- They are short enough for a prototype listening task
+- They keep the odd-one-out logic easy to explain in guardian-assisted testing
 
-## M5-A prototype sets
+## Final prototype item sets
 
-Practice:
+### M5-A practice
 
-- `사과, 사자, 토끼` -> odd one out: `토끼`
+- `사과, 사자, 사탕, 토끼` -> odd one out: `토끼`
 
-Age 5 set:
-
-- `나비, 나무, 토끼` -> `토끼`
-- `모자, 모기, 사과` -> `사과`
-- `기차, 기타, 바지` -> `바지`
-
-Age 6 additional items:
-
-- `바지, 바다, 구름` -> `구름`
-- `시계, 시소, 나무` -> `나무`
-
-Rationale:
-
-- All target words are 2-syllable nouns
-- Each item contains two words with the same initial syllable and one odd item
-- Words are highly imageable and common in home/classroom life
-
-## M5-B prototype sets
-
-Practice:
+### M5-B practice
 
 - `문, 말, 집` -> odd one out: `집`
 
-Age 5 set:
+### Age 5 M5-A
+
+- `나비, 나무, 나팔, 토끼` -> `토끼`
+- `모자, 모기, 모래, 사과` -> `사과`
+- `기차, 기타, 기린, 바지` -> `바지`
+
+### Age 5 M5-B
 
 - `불, 밥, 책` -> `책`
 - `차, 책, 물` -> `물`
 - `문, 물, 꽃` -> `꽃`
 
-Age 6 additional items:
+### Age 6 additional M5-A
+
+- `바지, 바다, 바구니, 구름` -> `구름`
+- `시계, 시소, 시금치, 나무` -> `나무`
+
+### Age 6 additional M5-B
 
 - `집, 잼, 눈` -> `눈`
 - `돌, 달, 불` -> `불`
 
-Rationale:
+## Asset and runtime notes
 
-- All target words are 1-syllable nouns
-- Each item contains two words with the same onset and one odd item
-- Words were selected for concreteness and ease of picture support
-
-## Prototype caveats
-
-- Some items still need phonological review by a speech/hearing/literacy expert
-- No validation study has been run
-- No percentile norms are attached
-- Audio files are still placeholders, so runtime may use safe fallback speech synthesis
-- Choice image keys are defined, but final illustrated assets are not attached yet
+- Each item includes:
+  - spoken prompt sequence
+  - image keys
+  - correct answer
+  - difficulty label
+  - optional local audio path placeholder
+- Final audio files are not required yet
+- If local audio is missing, runtime safely falls back to the current synthesized playback behavior
 
 ## What still needs expert review
 
-- Whether each odd-one-out contrast is optimal for 5-year-olds versus 6-year-olds
-- Whether any selected nouns are regionally less familiar than expected
-- Whether onset contrasts should be narrowed further for cleaner prototype listening behavior
-- Whether prompt wording should be simplified more for guardian-assisted testing
-- Whether age 6 should use slightly denser or more difficult contrasts in the final version
+- Whether each onset pair is developmentally clean enough for 5-year-olds and 6-year-olds
+- Whether any nouns are less familiar than expected across regions or classrooms
+- Whether the age 6 set should use slightly harder contrasts in the final version
+- Whether prompt wording should be simplified further for standardized administration
+- Whether some image keys should be replaced with more culturally neutral or clearer objects
+
+## Explicit limitations
+
+- This content is prototype-grade only
+- It should not be treated as validated screening content
+- No percentile norms or diagnostic interpretations are attached

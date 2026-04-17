@@ -133,3 +133,40 @@ export function getContentAssetStatus(moduleCode: string, ageYears?: number) {
     ? "fallback_assets"
     : "real_assets";
 }
+
+export function getM5ValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M5", ageYears);
+
+  if (!definition) {
+    return ["M5 manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+  const checkItems = [...definition.practiceItems, ...definition.testItems];
+
+  for (const item of checkItems) {
+    if (item.contentGroup === "M5-A") {
+      if (item.choices.length !== 4) {
+        issues.push(`${item.id}: M5-A items must have 4 choices.`);
+      }
+      if ((item.promptSequence?.length ?? 0) < 5) {
+        issues.push(`${item.id}: M5-A prompt sequence should include 4 words plus an instruction cue.`);
+      }
+    }
+
+    if (item.contentGroup === "M5-B") {
+      if (item.choices.length !== 3) {
+        issues.push(`${item.id}: M5-B items must have 3 choices.`);
+      }
+      if ((item.promptSequence?.length ?? 0) < 4) {
+        issues.push(`${item.id}: M5-B prompt sequence should include 3 words plus an instruction cue.`);
+      }
+    }
+
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+  }
+
+  return issues;
+}

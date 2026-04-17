@@ -4,24 +4,24 @@
   "implemented": true,
   "ageBand": [5, 6],
   "playbackType": "tts",
-  "instructions": "말을 잘 듣고 다른 하나를 고르세요. 쉬운 그림 이름을 쓰는 프로토타입 콘텐츠입니다.",
+  "instructions": "말을 잘 듣고 다른 하나를 고르세요. 이 모듈은 프로토타입 콘텐츠로 구성되어 있습니다.",
   "practiceItems": [
     {
       "id": "m5a-p1",
       "ageBand": [5, 6],
       "contentGroup": "M5-A",
-      "prompt": "사과, 사자, 토끼. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["사과", "사자", "토끼", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "사과, 사자, 사탕, 토끼. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["사과", "사자", "사탕", "토끼", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-p1.wav",
-      "choices": ["사과", "사자", "토끼"],
-      "choiceImageKeys": ["apple", "lion", "rabbit"],
+      "choices": ["사과", "사자", "사탕", "토끼"],
+      "choiceImageKeys": ["apple", "lion", "candy", "rabbit"],
       "choiceImages": [],
       "correctAnswer": "토끼",
       "difficultyLevel": "practice_clear",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "M5-A practice. Two 2-syllable words share the first syllable '사', and one familiar noun differs."
+      "notes": "M5-A practice. Four 2-syllable nouns, three share the first syllable '사' and one differs."
     },
     {
       "id": "m5b-p1",
@@ -38,7 +38,7 @@
       "difficultyLevel": "practice_clear",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "M5-B practice. Two 1-syllable words share onset ㅁ, and one familiar noun differs."
+      "notes": "M5-B practice. Three 1-syllable nouns, two share onset ㅁ and one differs."
     }
   ],
   "testItems": [
@@ -46,52 +46,52 @@
       "id": "m5a-5-1",
       "ageBand": [5, 6],
       "contentGroup": "M5-A",
-      "prompt": "나비, 나무, 토끼. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["나비", "나무", "토끼", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "나비, 나무, 나팔, 토끼. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["나비", "나무", "나팔", "토끼", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-5-1.wav",
-      "choices": ["나비", "나무", "토끼"],
-      "choiceImageKeys": ["butterfly", "tree", "rabbit"],
+      "choices": ["나비", "나무", "나팔", "토끼"],
+      "choiceImageKeys": ["butterfly", "tree", "trumpet", "rabbit"],
       "choiceImages": [],
       "correctAnswer": "토끼",
       "difficultyLevel": "starter",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 starter M5-A item with familiar 2-syllable nouns."
+      "notes": "Age 5 M5-A item. Four 2-syllable nouns; three share initial syllable '나'."
     },
     {
       "id": "m5a-5-2",
       "ageBand": [5, 6],
       "contentGroup": "M5-A",
-      "prompt": "모자, 모기, 사과. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["모자", "모기", "사과", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "모자, 모기, 모래, 사과. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["모자", "모기", "모래", "사과", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-5-2.wav",
-      "choices": ["모자", "모기", "사과"],
-      "choiceImageKeys": ["hat", "mosquito", "apple"],
+      "choices": ["모자", "모기", "모래", "사과"],
+      "choiceImageKeys": ["hat", "mosquito", "sand", "apple"],
       "choiceImages": [],
       "correctAnswer": "사과",
       "difficultyLevel": "starter",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 M5-A item using simple 2-syllable nouns and a clear odd-one-out."
+      "notes": "Age 5 M5-A item. Four 2-syllable nouns; three share initial syllable '모'."
     },
     {
       "id": "m5a-5-3",
       "ageBand": [5, 6],
       "contentGroup": "M5-A",
-      "prompt": "기차, 기타, 바지. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["기차", "기타", "바지", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "기차, 기타, 기린, 바지. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["기차", "기타", "기린", "바지", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-5-3.wav",
-      "choices": ["기차", "기타", "바지"],
-      "choiceImageKeys": ["train", "guitar", "pants"],
+      "choices": ["기차", "기타", "기린", "바지"],
+      "choiceImageKeys": ["train", "guitar", "giraffe", "pants"],
       "choiceImages": [],
       "correctAnswer": "바지",
       "difficultyLevel": "core",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 M5-A item with familiar picturable nouns; still prototype content."
+      "notes": "Age 5 M5-A item. Four 2-syllable nouns; three share initial syllable '기'."
     },
     {
       "id": "m5b-5-1",
@@ -108,7 +108,7 @@
       "difficultyLevel": "starter",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 starter M5-B item. Two 1-syllable nouns share onset ㅂ."
+      "notes": "Age 5 M5-B item. Three 1-syllable nouns; two share onset ㅂ."
     },
     {
       "id": "m5b-5-2",
@@ -125,7 +125,7 @@
       "difficultyLevel": "core",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 M5-B item. Two 1-syllable nouns share onset ㅊ and one familiar noun differs."
+      "notes": "Age 5 M5-B item. Three 1-syllable nouns; two share onset ㅊ."
     },
     {
       "id": "m5b-5-3",
@@ -142,41 +142,41 @@
       "difficultyLevel": "core",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 M5-B item using common picturable nouns and clear onset contrast."
+      "notes": "Age 5 M5-B item. Three 1-syllable nouns; two share onset ㅁ."
     },
     {
       "id": "m5a-6-4",
       "ageBand": [6],
       "contentGroup": "M5-A",
-      "prompt": "바지, 바다, 구름. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["바지", "바다", "구름", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "바지, 바다, 바구니, 구름. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["바지", "바다", "바구니", "구름", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-6-4.wav",
-      "choices": ["바지", "바다", "구름"],
-      "choiceImageKeys": ["pants", "sea", "cloud"],
+      "choices": ["바지", "바다", "바구니", "구름"],
+      "choiceImageKeys": ["pants", "sea", "basket", "cloud"],
       "choiceImages": [],
       "correctAnswer": "구름",
       "difficultyLevel": "core_plus",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 6 additional M5-A item extending the age 5 set."
+      "notes": "Age 6 additional M5-A item. Four 2-syllable nouns; three share initial syllable '바'."
     },
     {
       "id": "m5a-6-5",
       "ageBand": [6],
       "contentGroup": "M5-A",
-      "prompt": "시계, 시소, 나무. 처음 음절이 다른 하나를 고르세요.",
-      "promptSequence": ["시계", "시소", "나무", "처음 음절이 다른 하나를 고르세요."],
+      "prompt": "시계, 시소, 시금치, 나무. 처음 음절이 다른 하나를 고르세요.",
+      "promptSequence": ["시계", "시소", "시금치", "나무", "처음 음절이 다른 하나를 고르세요."],
       "promptAudio": null,
       "localAudioPath": "content/audio/m5/m5a-6-5.wav",
-      "choices": ["시계", "시소", "나무"],
-      "choiceImageKeys": ["clock", "seesaw", "tree"],
+      "choices": ["시계", "시소", "시금치", "나무"],
+      "choiceImageKeys": ["clock", "seesaw", "spinach", "tree"],
       "choiceImages": [],
       "correctAnswer": "나무",
       "difficultyLevel": "stretch",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 6 additional M5-A item using highly imageable school/home nouns."
+      "notes": "Age 6 additional M5-A item. Four 2-syllable nouns; three share initial syllable '시'."
     },
     {
       "id": "m5b-6-4",
@@ -193,7 +193,7 @@
       "difficultyLevel": "core_plus",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 6 additional M5-B item. Two 1-syllable nouns share onset ㅈ."
+      "notes": "Age 6 additional M5-B item. Three 1-syllable nouns; two share onset ㅈ."
     },
     {
       "id": "m5b-6-5",
@@ -210,7 +210,7 @@
       "difficultyLevel": "stretch",
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 6 additional M5-B item. Two 1-syllable nouns share onset ㄷ and one familiar noun differs."
+      "notes": "Age 6 additional M5-B item. Three 1-syllable nouns; two share onset ㄷ."
     }
   ],
   "promptAudio": [],
