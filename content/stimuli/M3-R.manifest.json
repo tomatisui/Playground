@@ -1,0 +1,79 @@
+{
+  "moduleCode": "M3-R",
+  "title": "auditory working memory backward",
+  "implemented": true,
+  "ageBand": [6],
+  "playbackType": "tts",
+  "instructions": "듣고 난 뒤 거꾸로 된 순서를 고르세요.",
+  "practiceItems": [
+    {
+      "id": "m3r-p1",
+      "ageBand": [6],
+      "prompt": "해, 비",
+      "promptAudio": null,
+      "choices": ["해, 비", "비, 해", "비, 눈"],
+      "choiceImages": [],
+      "correctAnswer": "비, 해",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3r-p2",
+      "ageBand": [6],
+      "prompt": "가, 다, 라",
+      "promptAudio": null,
+      "choices": ["라, 다, 가", "가, 다, 라", "다, 가, 라"],
+      "choiceImages": [],
+      "correctAnswer": "라, 다, 가",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "testItems": [
+    {
+      "id": "m3r-t1",
+      "ageBand": [6],
+      "prompt": "둘, 넷",
+      "promptAudio": null,
+      "choices": ["넷, 둘", "둘, 넷", "둘, 셋"],
+      "choiceImages": [],
+      "correctAnswer": "넷, 둘",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3r-t2",
+      "ageBand": [6],
+      "prompt": "나무, 꽃, 잎",
+      "promptAudio": null,
+      "choices": ["잎, 꽃, 나무", "나무, 꽃, 잎", "꽃, 잎, 나무"],
+      "choiceImages": [],
+      "correctAnswer": "잎, 꽃, 나무",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3r-t3",
+      "ageBand": [6],
+      "prompt": "바다, 모래, 조개",
+      "promptAudio": null,
+      "choices": ["조개, 모래, 바다", "모래, 조개, 바다", "바다, 모래, 조개"],
+      "choiceImages": [],
+      "correctAnswer": "조개, 모래, 바다",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "mixed",
+  "placeholder": false,
+  "labels": ["content_not_final"],
+  "notes": "Age 6 only. Content is playable and manifest-backed, but still uses fallback speech synthesis instead of final recorded assets."
+}

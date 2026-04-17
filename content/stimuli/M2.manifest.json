@@ -1,0 +1,18 @@
+{
+  "moduleCode": "M2",
+  "title": "speech-in-noise",
+  "implemented": false,
+  "ageBand": [5, 6],
+  "playbackType": "tts",
+  "instructions": "준비 중인 소음 속 말 듣기 과제입니다.",
+  "placeholderCopy": "M2는 현재 의도적으로 유지되는 프로토타입 플레이스홀더입니다. 이후 실제 자극 콘텐츠가 들어와도 세션 엔진과 보고 흐름을 바꾸지 않도록 구조를 먼저 고정해 둡니다.",
+  "practiceItems": [],
+  "testItems": [],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "placeholder",
+  "placeholder": true,
+  "labels": ["prototype_placeholder", "content_not_final"],
+  "notes": "M2 remains a structured placeholder in this phase. The runtime shell should stay stable while content assets are prepared later."
+}

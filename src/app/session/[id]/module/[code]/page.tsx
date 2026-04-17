@@ -2,7 +2,7 @@ import Link from "next/link";
 import { completePlaceholderModule } from "@/app/actions";
 import { ModuleRunner } from "@/components/module-runner";
 import { PrototypeBadge } from "@/components/prototype-badge";
-import { getModuleDefinition } from "@/lib/module-catalog";
+import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
 import { parseResponseLog, getSessionWithDetails, getSessionEngineSnapshot, touchSessionRoute, upsertQualityFlag } from "@/lib/session-runtime";
 
 export const dynamic = "force-dynamic";
@@ -42,7 +42,7 @@ export default async function ModulePage({
   }
 
   const snapshot = getSessionEngineSnapshot(session);
-  const definition = getModuleDefinition(code);
+  const definition = getModuleDefinition(code, session.ageYears);
 
   if (!definition || !snapshot.expected_modules.includes(code as never)) {
     return (
@@ -104,7 +104,7 @@ export default async function ModulePage({
             Module placeholder
           </p>
           <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-            {definition.code} {definition.title}
+            {definition.moduleCode} {definition.title}
           </h1>
           <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
             {definition.placeholderCopy}
@@ -112,7 +112,7 @@ export default async function ModulePage({
 
           <form action={completePlaceholderModule} className="mt-6">
             <input type="hidden" name="sessionId" value={session.id} />
-            <input type="hidden" name="moduleCode" value={definition.code} />
+            <input type="hidden" name="moduleCode" value={definition.moduleCode} />
             <button
               type="submit"
               className="w-full rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white"
@@ -140,7 +140,7 @@ export default async function ModulePage({
               Module runtime
             </p>
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-              {definition.code} {definition.title}
+              {definition.moduleCode} {definition.title}
             </h1>
           </div>
           <Link
@@ -150,14 +150,17 @@ export default async function ModulePage({
             보고서 보기
           </Link>
         </div>
+        <div className="mt-4 rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
+          콘텐츠 상태: {getContentAssetStatus(code, session.ageYears)}
+        </div>
 
         {(definition.testItems?.length ?? 0) > 0 ? (
           <div className="mt-6">
             <ModuleRunner
               sessionId={session.id}
-              moduleCode={definition.code}
+              moduleCode={definition.moduleCode}
               playbackType={definition.playbackType ?? "tts"}
-              title={`${definition.code} ${definition.title}`}
+              title={`${definition.moduleCode} ${definition.title}`}
               instructions={definition.instructions ?? ""}
               items={definition.testItems ?? []}
               initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}

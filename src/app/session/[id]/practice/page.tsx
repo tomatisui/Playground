@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PrototypeBadge } from "@/components/prototype-badge";
 import { PracticeRunner } from "@/components/practice-runner";
-import { getModuleDefinition } from "@/lib/module-catalog";
+import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
 import { getSessionWithDetails, touchSessionRoute } from "@/lib/session-runtime";
 import { getSessionEngineSnapshot } from "@/lib/session-runtime";
 
@@ -51,7 +51,7 @@ export default async function PracticePage({
 
   await touchSessionRoute(id, `/session/${id}/practice`, snapshot.next_module);
 
-  const definition = getModuleDefinition(snapshot.next_module);
+  const definition = getModuleDefinition(snapshot.next_module, session.ageYears);
 
   if (!definition) {
     return (
@@ -92,25 +92,28 @@ export default async function PracticePage({
           Practice
         </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-          {definition.code} 연습
+          {definition.moduleCode} 연습
         </h1>
         <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
           연습은 점수화하지 않습니다. 아이가 과제 형식을 이해하도록 도와주는
           단계입니다.
         </p>
+        <div className="mt-4 rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
+          콘텐츠 상태: {getContentAssetStatus(snapshot.next_module, session.ageYears)}
+        </div>
 
         {definition.implemented ? (
           (definition.practiceItems?.length ?? 0) > 0 ? (
             <div className="mt-6">
               <PracticeRunner
                 sessionId={session.id}
-                moduleCode={definition.code}
+                moduleCode={definition.moduleCode}
                 playbackType={definition.playbackType ?? "tts"}
                 instructions={definition.instructions ?? ""}
                 items={definition.practiceItems ?? []}
                 initialPracticeRuns={attempt?.practiceRuns ?? 0}
                 initialPracticeFailures={attempt?.practiceFailures ?? 0}
-                moduleHref={`/session/${session.id}/module/${definition.code}`}
+                moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
               />
             </div>
           ) : (
@@ -120,7 +123,7 @@ export default async function PracticePage({
                 수동 테스트를 계속할 수 있습니다.
               </div>
               <Link
-                href={`/session/${session.id}/module/${definition.code}`}
+                href={`/session/${session.id}/module/${definition.moduleCode}`}
                 className="inline-flex w-full justify-center rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white"
               >
                 본 과제로 이동
@@ -133,7 +136,7 @@ export default async function PracticePage({
               {definition.placeholderCopy}
             </div>
             <Link
-              href={`/session/${session.id}/module/${definition.code}`}
+              href={`/session/${session.id}/module/${definition.moduleCode}`}
               className="inline-flex w-full justify-center rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white"
             >
               플레이스홀더 모듈로 이동

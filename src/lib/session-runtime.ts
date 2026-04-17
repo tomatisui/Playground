@@ -1,5 +1,10 @@
 import { prisma } from "@/lib/prisma";
-import { getModuleDefinition } from "@/lib/module-catalog";
+import {
+  getContentAssetStatus,
+  getModuleDefinition,
+  getPlaceholderModuleLabels,
+  usesFallbackContentAssets,
+} from "@/lib/module-catalog";
 import {
   ModuleCode,
   getCompletionSnapshot,
@@ -74,9 +79,12 @@ export function buildProvisionalSummary(
   itemCount: number,
 ) {
   const definition = getModuleDefinition(moduleCode);
-  const label = definition ? `${definition.code} ${definition.title}` : moduleCode;
+  const label = definition
+    ? `${definition.moduleCode} ${definition.title}`
+    : moduleCode;
+  const contentStatus = getContentAssetStatus(moduleCode);
 
-  return `${label}: ${correctCount}/${itemCount} items aligned with the current prompt. This is a provisional raw summary only.`;
+  return `${label}: ${correctCount}/${itemCount} items aligned with the current prompt. Content status: ${contentStatus}. This is a provisional raw summary only.`;
 }
 
 export function getAccuracyBand(correctCount: number, itemCount: number) {
@@ -152,6 +160,7 @@ export function getReportLevelCopy(level: number) {
 export function buildObservedText({
   moduleAttempts,
   qualityFlags,
+  ageYears,
 }: {
   moduleAttempts: Array<{
     moduleCode: string;
@@ -161,6 +170,7 @@ export function buildObservedText({
     provisionalSummary: string | null;
   }>;
   qualityFlags: Array<{ flagCode: string }>;
+  ageYears: number;
 }) {
   const completedAttempts = moduleAttempts.filter((attempt) => attempt.completedAt);
 
@@ -172,7 +182,7 @@ export function buildObservedText({
     const definition = getModuleDefinition(attempt.moduleCode);
     const band = getAccuracyBand(attempt.correctCount, attempt.itemCount);
     const moduleLabel = definition
-      ? `${definition.code} ${definition.title}`
+      ? `${definition.moduleCode} ${definition.title}`
       : attempt.moduleCode;
 
     if (band === "strong") {
@@ -189,6 +199,26 @@ export function buildObservedText({
   if (qualityFlags.length > 0) {
     observations.push(
       "또한 검사 중 연습 실패, 중단 후 재개, 추가 도움 필요 가능성 같은 진행 품질 신호가 함께 기록되었습니다.",
+    );
+  }
+
+  const placeholderRuns = completedAttempts.filter((attempt) =>
+    getPlaceholderModuleLabels(attempt.moduleCode).length > 0,
+  );
+
+  if (placeholderRuns.length > 0) {
+    observations.push(
+      "일부 활동은 내부 프로토타입 단계의 예비 콘텐츠로 진행되어 이번 결과는 참고용 관찰 안내로 해석하는 것이 적절합니다.",
+    );
+  }
+
+  const fallbackRuns = completedAttempts.filter((attempt) =>
+    usesFallbackContentAssets(attempt.moduleCode, ageYears),
+  );
+
+  if (fallbackRuns.length > 0) {
+    observations.push(
+      "일부 문항은 최종 녹음 자산 대신 현재 프로토타입용 대체 자산으로 진행되었습니다.",
     );
   }
 
@@ -246,4 +276,34 @@ export function getSessionEngineSnapshot(session: {
 
 export function isModuleAvailableForSession(ageYears: number, moduleCode: string) {
   return getExpectedModules(ageYears).includes(moduleCode as ModuleCode);
+}
+
+export function getPrototypeGradeStatus(session: {
+  ageYears: number;
+  moduleAttempts: Array<{
+    moduleCode: string;
+    completedAt: Date | null;
+  }>;
+}) {
+  const completedAttempts = session.moduleAttempts.filter(
+    (attempt) => attempt.completedAt,
+  );
+
+  if (
+    completedAttempts.some(
+      (attempt) => getPlaceholderModuleLabels(attempt.moduleCode).length > 0,
+    )
+  ) {
+    return "prototype_grade";
+  }
+
+  if (
+    completedAttempts.some((attempt) =>
+      usesFallbackContentAssets(attempt.moduleCode, session.ageYears),
+    )
+  ) {
+    return "prototype_grade";
+  }
+
+  return "content_ready";
 }

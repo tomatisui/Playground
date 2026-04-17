@@ -2,8 +2,13 @@ import Link from "next/link";
 import { completeRecommendedModule, toggleModuleCompletion } from "@/app/actions";
 import { PrototypeBadge } from "@/components/prototype-badge";
 import { prisma } from "@/lib/prisma";
-import { getModuleDefinition } from "@/lib/module-catalog";
-import { getSessionEngineSnapshot, getReportLevel, getReportLevelCopy } from "@/lib/session-runtime";
+import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
+import {
+  getPrototypeGradeStatus,
+  getSessionEngineSnapshot,
+  getReportLevel,
+  getReportLevelCopy,
+} from "@/lib/session-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +53,7 @@ export default async function AdminPage() {
               moduleAttempts: session.moduleAttempts,
               qualityFlags: session.qualityFlags,
             });
+            const prototypeGradeStatus = getPrototypeGradeStatus(session);
 
             return (
               <article
@@ -100,6 +106,7 @@ export default async function AdminPage() {
                               ? snapshot.completed_modules.join(", ")
                               : "없음"}
                           </p>
+                          <p>Prototype grade: {prototypeGradeStatus}</p>
                         </div>
                       </div>
 
@@ -136,8 +143,11 @@ export default async function AdminPage() {
                         <p className="mt-2 text-sm text-[var(--muted)]">
                           Placeholder usage:{" "}
                           {session.moduleAttempts.some((attempt) => {
-                            const definition = getModuleDefinition(attempt.moduleCode);
-                            return definition && !definition.implemented;
+                            const definition = getModuleDefinition(
+                              attempt.moduleCode,
+                              session.ageYears,
+                            );
+                            return definition?.placeholder;
                           })
                             ? "있음"
                             : "없음"}
@@ -157,9 +167,9 @@ export default async function AdminPage() {
                             return (
                               <div key={attempt.id} className="text-sm leading-7 text-[var(--muted)]">
                                 <span className="font-semibold text-[var(--foreground)]">
-                                  {definition ? `${definition.code} ${definition.title}` : attempt.moduleCode}
+                                  {definition ? `${definition.moduleCode} ${definition.title}` : attempt.moduleCode}
                                 </span>
-                                : {attempt.provisionalSummary || "아직 요약 없음"}
+                                : {attempt.provisionalSummary || "아직 요약 없음"} · status {attempt.status}
                               </div>
                             );
                           })
@@ -175,13 +185,19 @@ export default async function AdminPage() {
                       </p>
                       <div className="mt-3 space-y-2">
                         {session.moduleAttempts.filter((attempt) => {
-                          const definition = getModuleDefinition(attempt.moduleCode);
-                          return definition && !definition.implemented;
+                          const definition = getModuleDefinition(
+                            attempt.moduleCode,
+                            session.ageYears,
+                          );
+                          return definition?.placeholder;
                         }).length > 0 ? (
                           session.moduleAttempts
                             .filter((attempt) => {
-                              const definition = getModuleDefinition(attempt.moduleCode);
-                              return definition && !definition.implemented;
+                              const definition = getModuleDefinition(
+                                attempt.moduleCode,
+                                session.ageYears,
+                              );
+                              return definition?.placeholder;
                             })
                             .map((attempt) => (
                               <p key={attempt.id} className="text-sm leading-7 text-[var(--muted)]">
@@ -205,6 +221,12 @@ export default async function AdminPage() {
                       </p>
                       <p className="mt-2 text-sm text-[var(--muted)]">
                         Completed modules are compared directly against `expected_modules`.
+                      </p>
+                      <p className="mt-2 text-sm text-[var(--muted)]">
+                        Next module content status:{" "}
+                        {snapshot.next_module
+                          ? getContentAssetStatus(snapshot.next_module, session.ageYears)
+                          : "complete"}
                       </p>
                     </div>
 
@@ -232,7 +254,12 @@ export default async function AdminPage() {
                             <input type="hidden" name="sessionId" value={session.id} />
                             <input type="hidden" name="moduleCode" value={moduleCode} />
                             <input type="hidden" name="shouldComplete" value={String(!complete)} />
-                            <span className="text-sm font-semibold">{moduleCode}</span>
+                            <span className="text-sm font-semibold">
+                              {moduleCode}
+                              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
+                                {getContentAssetStatus(moduleCode, session.ageYears)}
+                              </span>
+                            </span>
                             <button
                               type="submit"
                               className={`rounded-full px-3 py-2 text-xs font-semibold ${

@@ -1,0 +1,79 @@
+{
+  "moduleCode": "M4",
+  "title": "auditory pattern recognition",
+  "implemented": true,
+  "ageBand": [5, 6],
+  "playbackType": "pattern",
+  "instructions": "소리 길이의 패턴을 듣고 같은 패턴을 고르세요.",
+  "practiceItems": [
+    {
+      "id": "m4-p1",
+      "ageBand": [5, 6],
+      "prompt": "짧음-길음",
+      "promptAudio": null,
+      "choices": ["짧음-길음", "길음-짧음", "짧음-짧음"],
+      "choiceImages": [],
+      "correctAnswer": "짧음-길음",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+    },
+    {
+      "id": "m4-p2",
+      "ageBand": [5, 6],
+      "prompt": "길음-짧음-길음",
+      "promptAudio": null,
+      "choices": ["길음-짧음-길음", "짧음-길음-짧음", "길음-길음-짧음"],
+      "choiceImages": [],
+      "correctAnswer": "길음-짧음-길음",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+    }
+  ],
+  "testItems": [
+    {
+      "id": "m4-t1",
+      "ageBand": [5, 6],
+      "prompt": "짧음-짧음-길음",
+      "promptAudio": null,
+      "choices": ["짧음-짧음-길음", "길음-짧음-짧음", "짧음-길음-짧음"],
+      "choiceImages": [],
+      "correctAnswer": "짧음-짧음-길음",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+    },
+    {
+      "id": "m4-t2",
+      "ageBand": [5, 6],
+      "prompt": "길음-짧음-짧음",
+      "promptAudio": null,
+      "choices": ["짧음-짧음-길음", "길음-짧음-짧음", "짧음-길음-짧음"],
+      "choiceImages": [],
+      "correctAnswer": "길음-짧음-짧음",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+    },
+    {
+      "id": "m4-t3",
+      "ageBand": [5, 6],
+      "prompt": "짧음-길음-길음",
+      "promptAudio": null,
+      "choices": ["짧음-길음-길음", "길음-짧음-길음", "길음-길음-짧음"],
+      "choiceImages": [],
+      "correctAnswer": "짧음-길음-길음",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "notes": "Uses synthesized tone pattern playback because final audio assets are not attached yet."
+    }
+  ],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "mixed",
+  "placeholder": false,
+  "labels": ["content_not_final"],
+  "notes": "Content is playable and manifest-backed, but still uses fallback synthesized pattern playback instead of final audio assets."
+}

@@ -1,0 +1,79 @@
+{
+  "moduleCode": "M5",
+  "title": "phonological awareness",
+  "implemented": true,
+  "ageBand": [5, 6],
+  "playbackType": "tts",
+  "instructions": "처음 소리나 끝소리가 비슷한 말을 듣고 맞는 것을 고르세요.",
+  "practiceItems": [
+    {
+      "id": "m5-p1",
+      "ageBand": [5, 6],
+      "prompt": "바다와 같은 처음 소리로 시작하는 것은 무엇일까요?",
+      "promptAudio": null,
+      "choices": ["바구니", "사자", "토끼"],
+      "choiceImages": [],
+      "correctAnswer": "바구니",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m5-p2",
+      "ageBand": [5, 6],
+      "prompt": "눈과 끝소리가 비슷한 것은 무엇일까요?",
+      "promptAudio": null,
+      "choices": ["문", "풀", "산"],
+      "choiceImages": [],
+      "correctAnswer": "문",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "testItems": [
+    {
+      "id": "m5-t1",
+      "ageBand": [5, 6],
+      "prompt": "해와 같은 처음 소리로 시작하는 것은 무엇일까요?",
+      "promptAudio": null,
+      "choices": ["햄", "달", "구름"],
+      "choiceImages": [],
+      "correctAnswer": "햄",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m5-t2",
+      "ageBand": [5, 6],
+      "prompt": "공과 같은 끝소리가 들리는 것은 무엇일까요?",
+      "promptAudio": null,
+      "choices": ["강", "봉", "방"],
+      "choiceImages": [],
+      "correctAnswer": "봉",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m5-t3",
+      "ageBand": [5, 6],
+      "prompt": "소와 같은 처음 소리로 시작하는 것은 무엇일까요?",
+      "promptAudio": null,
+      "choices": ["사과", "모자", "토끼"],
+      "choiceImages": [],
+      "correctAnswer": "사과",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "mixed",
+  "placeholder": false,
+  "labels": ["content_not_final"],
+  "notes": "Content is playable and manifest-backed, but still uses fallback speech synthesis instead of final recorded assets."
+}

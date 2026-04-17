@@ -23,31 +23,37 @@ export const MODULE_DETAILS = {
     code: "M1",
     title: "phonemic discrimination",
     summary: "Child distinguishes similar speech sounds in quiet listening.",
+    internalLabels: ["prototype_placeholder", "content_not_final"],
   },
   M2: {
     code: "M2",
     title: "speech-in-noise",
     summary: "Child identifies speech targets while background noise is present.",
+    internalLabels: ["prototype_placeholder", "content_not_final"],
   },
   M3: {
     code: "M3",
     title: "auditory working memory forward",
     summary: "Child repeats heard sequences in the same order.",
+    internalLabels: ["content_not_final"],
   },
   "M3-R": {
     code: "M3-R",
     title: "auditory working memory backward",
     summary: "Child repeats heard sequences in reverse order.",
+    internalLabels: ["content_not_final"],
   },
   M4: {
     code: "M4",
     title: "auditory pattern recognition",
     summary: "Child recognizes and compares rhythmic or tonal patterns.",
+    internalLabels: ["content_not_final"],
   },
   M5: {
     code: "M5",
     title: "phonological awareness",
     summary: "Child demonstrates sound-based language awareness without diagnostic labeling.",
+    internalLabels: ["content_not_final"],
   },
 } as const;
 

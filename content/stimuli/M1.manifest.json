@@ -1,0 +1,18 @@
+{
+  "moduleCode": "M1",
+  "title": "phonemic discrimination",
+  "implemented": false,
+  "ageBand": [5, 6],
+  "playbackType": "tts",
+  "instructions": "준비 중인 말소리 구별 과제입니다.",
+  "placeholderCopy": "M1은 현재 의도적으로 유지되는 프로토타입 플레이스홀더입니다. 핵심 세션 흐름과 모듈 구조를 안정적으로 유지하기 위해 빈 모듈이 아니라 명시적 예비 콘텐츠로 표시됩니다.",
+  "practiceItems": [],
+  "testItems": [],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "placeholder",
+  "placeholder": true,
+  "labels": ["prototype_placeholder", "content_not_final"],
+  "notes": "M1 remains a structured placeholder in this phase. Runtime and reporting should treat it as intentional prototype content, not missing content."
+}

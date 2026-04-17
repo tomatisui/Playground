@@ -1,0 +1,79 @@
+{
+  "moduleCode": "M3",
+  "title": "auditory working memory forward",
+  "implemented": true,
+  "ageBand": [5, 6],
+  "playbackType": "tts",
+  "instructions": "듣고 난 뒤 같은 순서로 고르세요.",
+  "practiceItems": [
+    {
+      "id": "m3-p1",
+      "ageBand": [5, 6],
+      "prompt": "하나, 셋",
+      "promptAudio": null,
+      "choices": ["하나, 셋", "셋, 하나", "둘, 셋"],
+      "choiceImages": [],
+      "correctAnswer": "하나, 셋",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3-p2",
+      "ageBand": [5, 6],
+      "prompt": "가, 나, 다",
+      "promptAudio": null,
+      "choices": ["가, 나, 다", "다, 나, 가", "가, 다, 나"],
+      "choiceImages": [],
+      "correctAnswer": "가, 나, 다",
+      "difficultyLevel": "practice",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "testItems": [
+    {
+      "id": "m3-t1",
+      "ageBand": [5, 6],
+      "prompt": "둘, 넷",
+      "promptAudio": null,
+      "choices": ["둘, 넷", "넷, 둘", "둘, 셋"],
+      "choiceImages": [],
+      "correctAnswer": "둘, 넷",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3-t2",
+      "ageBand": [5, 6],
+      "prompt": "해, 달, 별",
+      "promptAudio": null,
+      "choices": ["해, 달, 별", "별, 달, 해", "해, 별, 달"],
+      "choiceImages": [],
+      "correctAnswer": "해, 달, 별",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    },
+    {
+      "id": "m3-t3",
+      "ageBand": [5, 6],
+      "prompt": "빨강, 노랑, 파랑",
+      "promptAudio": null,
+      "choices": ["빨강, 파랑, 노랑", "빨강, 노랑, 파랑", "노랑, 빨강, 파랑"],
+      "choiceImages": [],
+      "correctAnswer": "빨강, 노랑, 파랑",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+    }
+  ],
+  "promptAudio": [],
+  "choiceImages": [],
+  "correctAnswer": null,
+  "difficultyLevel": "mixed",
+  "placeholder": false,
+  "labels": ["content_not_final"],
+  "notes": "Content is playable and manifest-backed, but still uses fallback speech synthesis instead of final recorded assets."
+}

@@ -4,6 +4,7 @@ import {
   buildLimitationsText,
   buildNextActionText,
   buildObservedText,
+  getPrototypeGradeStatus,
   getReportLevel,
   getReportLevelCopy,
   getSessionEngineSnapshot,
@@ -65,9 +66,11 @@ export default async function ReportPage({
   const observedText = buildObservedText({
     moduleAttempts: session.moduleAttempts,
     qualityFlags: session.qualityFlags,
+    ageYears: session.ageYears,
   });
   const limitationsText = buildLimitationsText();
   const nextActionText = buildNextActionText(level);
+  const prototypeGradeStatus = getPrototypeGradeStatus(session);
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
@@ -88,6 +91,12 @@ export default async function ReportPage({
             Current level
           </p>
           <p className="mt-2 text-2xl font-semibold">{getReportLevelCopy(level)}</p>
+          {prototypeGradeStatus === "prototype_grade" ? (
+            <p className="mt-3 text-sm leading-6 text-white/85">
+              일부 활동은 내부 프로토타입 콘텐츠 기준으로 진행되어 이번 안내는
+              참고용 관찰 요약에 더 가깝습니다.
+            </p>
+          ) : null}
         </div>
 
         <div className="mt-6 space-y-4">
