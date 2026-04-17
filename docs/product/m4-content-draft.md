@@ -4,6 +4,8 @@ This document captures the strengthened prototype content structure for `M4` aud
 
 This content is still `provisional_prototype_content`. It is not normed, validated, or diagnostic.
 
+This phase also marks `M4` as `reduced_prototype_scope`. The current prototype uses shorter pattern lengths than the full research design so the runtime stays manageable for mobile manual testing.
+
 ## Prototype subtype structure
 
 `M4` now supports two explicit prototype subtypes:
@@ -33,7 +35,7 @@ Practice remains unscored and only confirms that the child understands the task 
 - Age 6:
   - maximum prototype pattern length `4`
 
-This limit is now validated in internal debug checks.
+This limit is now validated in internal debug checks. It is intentionally shorter than the full research design, which is why the manifest and admin/debug views now surface `reduced_prototype_scope`.
 
 ## Prototype test examples
 
@@ -65,5 +67,6 @@ Age 6 additional:
 ## Explicit limitations
 
 - This is prototype-grade content only
+- This is a reduced-scope version of the intended research task
 - It should not be treated as validated screening content
 - No percentile norms or diagnostic interpretations are attached

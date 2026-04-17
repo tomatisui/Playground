@@ -32,7 +32,18 @@ export type ModuleItemDefinition = {
   placeholder: boolean;
   labels?: string[];
   reviewNeeded?: boolean;
+  backgroundNoiseAsset?: string | null;
+  targetWordAsset?: string | null;
+  onsetTimeMs?: number | null;
+  relativeLevelDb?: number | null;
   notes: string;
+};
+
+export type ModulePreLearningConfig = {
+  interaction: string;
+  recognitionCheck: string;
+  trainingMasteryThreshold: number;
+  notes?: string;
 };
 
 export type ModuleManifest = {
@@ -44,6 +55,7 @@ export type ModuleManifest = {
   instructions: string;
   placeholderCopy?: string;
   trainingPool?: TrainingPoolEntry[];
+  preLearning?: ModulePreLearningConfig;
   practiceItems: ModuleItemDefinition[];
   testItems: ModuleItemDefinition[];
   promptAudio: string[];
@@ -274,6 +286,44 @@ export function getM4ValidationIssues(ageYears: number) {
       issues.push(
         `${item.id}: pattern length ${patternLength} exceeds age ${ageYears} maximum of ${maxPatternLength}.`,
       );
+    }
+  }
+
+  return issues;
+}
+
+export function getM2ValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M2", ageYears);
+
+  if (!definition) {
+    return ["M2 manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+
+  if (!definition.preLearning) {
+    issues.push("M2 pre-learning metadata is missing.");
+  }
+
+  if ((definition.trainingPool?.length ?? 0) !== 10) {
+    issues.push(`M2 familiarization pool should contain 10 words, found ${definition.trainingPool?.length ?? 0}.`);
+  }
+
+  for (const item of [...definition.practiceItems, ...definition.testItems]) {
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+
+    if (item.choices.length !== 4) {
+      issues.push(`${item.id}: M2 items must have 4 choices.`);
+    }
+
+    if ((item.promptSequence?.length ?? 0) !== 1) {
+      issues.push(`${item.id}: M2 items should encode one target word in promptSequence.`);
+    }
+
+    if (!item.choices.includes(item.correctAnswer)) {
+      issues.push(`${item.id}: correct answer must be present among the four choices.`);
     }
   }
 

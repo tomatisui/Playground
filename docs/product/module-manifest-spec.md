@@ -22,6 +22,7 @@ Top-level fields:
 - `playbackType`: `tts` or `pattern`
 - `instructions`: runtime instruction copy
 - `trainingPool`: optional familiarization pool for prototype content packs
+- `preLearning`: optional metadata for pre-learning and recognition-check behavior
 - `practiceItems`: array of practice items
 - `testItems`: array of scored items
 - `promptAudio`: reserved list of top-level audio asset references
@@ -48,6 +49,10 @@ Item fields:
 - `placeholder`: whether the item is placeholder content
 - `labels`: internal lifecycle and content metadata
 - `reviewNeeded`: optional internal review flag for lexical exceptions or draft items
+- `backgroundNoiseAsset`: optional future-ready background-noise asset reference
+- `targetWordAsset`: optional future-ready target-word asset reference
+- `onsetTimeMs`: optional future-ready target onset timing
+- `relativeLevelDb`: optional future-ready target-versus-noise level hint
 - `notes`: internal content note
 
 ## Runtime expectations

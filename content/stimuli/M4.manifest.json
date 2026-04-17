@@ -9,25 +9,25 @@
     {
       "label": "짧음",
       "localAudioPath": "content/audio/m4/short.wav",
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Length-pattern training token."
     },
     {
       "label": "길음",
       "localAudioPath": "content/audio/m4/long.wav",
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Length-pattern training token."
     },
     {
       "label": "높음",
       "localAudioPath": "content/audio/m4/high.wav",
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Pitch-pattern training token."
     },
     {
       "label": "낮음",
       "localAudioPath": "content/audio/m4/low.wav",
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Pitch-pattern training token."
     }
   ],
@@ -46,7 +46,7 @@
       "correctAnswer": "짧음-길음",
       "difficultyLevel": "practice_two_item",
       "placeholder": false,
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Two-item practice round for length-pattern subtype."
     },
     {
@@ -63,7 +63,7 @@
       "correctAnswer": "높음-낮음",
       "difficultyLevel": "practice_two_item",
       "placeholder": false,
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Two-item practice round for pitch-pattern subtype."
     }
   ],
@@ -82,7 +82,7 @@
       "correctAnswer": "짧음-짧음-길음",
       "difficultyLevel": "starter",
       "placeholder": false,
-      "labels": ["provisional_prototype_content", "content_not_final"],
+      "labels": ["provisional_prototype_content", "content_not_final", "reduced_prototype_scope"],
       "notes": "Age 5 length-pattern item with maximum length 3."
     },
     {
@@ -159,6 +159,6 @@
   "correctAnswer": null,
   "difficultyLevel": "prototype_pack",
   "placeholder": false,
-  "labels": ["content_not_final", "provisional_prototype_content"],
-  "notes": "Prototype M4 pattern-recognition content pack with explicit length-pattern and pitch-pattern subtypes, safe fallback synthesis, and age-based maximum pattern length."
+  "labels": ["content_not_final", "provisional_prototype_content", "reduced_prototype_scope"],
+  "notes": "Prototype M4 pattern-recognition content pack with explicit length-pattern and pitch-pattern subtypes, safe fallback synthesis, and age-based maximum pattern length. This is a reduced prototype scope that intentionally uses shorter pattern lengths than the full research design."
 }

@@ -6,6 +6,7 @@ import {
   getContentAssetStatus,
   getModuleDefinition,
   getModuleManifest,
+  getM2ValidationIssues,
   getM3RValidationIssues,
   getM4ValidationIssues,
   getModuleReviewFlags,
@@ -63,6 +64,12 @@ export default async function AdminPage() {
               qualityFlags: session.qualityFlags,
             });
             const prototypeGradeStatus = getPrototypeGradeStatus(session);
+            const m2Definition = getModuleDefinition("M2", session.ageYears);
+            const m2Manifest = getModuleManifest("M2");
+            const m2Attempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M2") ??
+              null;
+            const m2ValidationIssues = getM2ValidationIssues(session.ageYears);
             const m3Definition = getModuleDefinition("M3", session.ageYears);
             const m3Manifest = getModuleManifest("M3");
             const m3Attempt =
@@ -247,6 +254,67 @@ export default async function AdminPage() {
 
                     <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
                       <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M2 content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          Provisional prototype content:{" "}
+                          {m2Manifest?.labels.includes("provisional_prototype_content")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M2 familiarization pool: {m2Manifest?.trainingPool?.length ?? 0} word(s)
+                        </p>
+                        <p>
+                          M2 pre-learning rule:{" "}
+                          {m2Manifest?.preLearning
+                            ? `${m2Manifest.preLearning.interaction} -> ${m2Manifest.preLearning.recognitionCheck}`
+                            : "missing"}
+                        </p>
+                        <p>
+                          M2 training mastery threshold:{" "}
+                          {m2Manifest?.preLearning?.trainingMasteryThreshold ?? "missing"}
+                        </p>
+                        <p>
+                          M2 training mastery status:{" "}
+                          {!m2Attempt
+                            ? "not_started"
+                            : m2Attempt.practiceRuns === 0
+                              ? "not_started"
+                              : m2Attempt.practiceFailures >= 2
+                                ? "below_threshold"
+                                : "met_or_proceeded"}
+                        </p>
+                        <p>
+                          M2 items delivered: {m2Attempt?.itemCount ?? 0}
+                          {m2Definition ? ` / ${m2Definition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          M2 fallback audio/noise used:{" "}
+                          {getContentAssetStatus("M2", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M2 content status: {getContentAssetStatus("M2", session.ageYears)}
+                        </p>
+                        <p>
+                          M2 malformed item flags:{" "}
+                          {m2ValidationIssues.length === 0 ? "none" : `${m2ValidationIssues.length} flag(s)`}
+                        </p>
+                        {m2ValidationIssues.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m2ValidationIssues.map((issue) => (
+                              <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                         M3 content debug
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
@@ -338,6 +406,15 @@ export default async function AdminPage() {
                                 .map(([subtype, count]) => `${subtype} (${count})`)
                                 .join(", ")
                             : "none"}
+                        </p>
+                        <p>
+                          M4 reduced prototype scope:{" "}
+                          {getModuleManifest("M4")?.labels.includes("reduced_prototype_scope")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M4 scope note: current prototype uses shorter pattern lengths than the full research design.
                         </p>
                         <p>
                           M4 subtype run focus:{" "}
