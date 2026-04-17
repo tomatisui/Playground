@@ -2,7 +2,11 @@ import Link from "next/link";
 import { completeRecommendedModule, toggleModuleCompletion } from "@/app/actions";
 import { PrototypeBadge } from "@/components/prototype-badge";
 import { prisma } from "@/lib/prisma";
-import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
+import {
+  getContentAssetStatus,
+  getModuleDefinition,
+  getModuleManifest,
+} from "@/lib/module-catalog";
 import {
   getPrototypeGradeStatus,
   getSessionEngineSnapshot,
@@ -54,6 +58,11 @@ export default async function AdminPage() {
               qualityFlags: session.qualityFlags,
             });
             const prototypeGradeStatus = getPrototypeGradeStatus(session);
+            const m5Definition = getModuleDefinition("M5", session.ageYears);
+            const m5Manifest = getModuleManifest("M5");
+            const m5Attempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M5") ??
+              null;
 
             return (
               <article
@@ -207,6 +216,33 @@ export default async function AdminPage() {
                         ) : (
                           <p className="text-sm text-[var(--muted)]">없음</p>
                         )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M5 content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          Provisional prototype content:{" "}
+                          {m5Manifest?.labels.includes("provisional_prototype_content")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M5 items delivered: {m5Attempt?.itemCount ?? 0}
+                          {m5Definition ? ` / ${m5Definition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          M5 fallback audio used:{" "}
+                          {getContentAssetStatus("M5", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M5 content status: {getContentAssetStatus("M5", session.ageYears)}
+                        </p>
                       </div>
                     </div>
                   </div>

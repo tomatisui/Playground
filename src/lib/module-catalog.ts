@@ -10,13 +10,18 @@ export type ModuleAgeBand = 5 | 6;
 export type ModuleItemDefinition = {
   id: string;
   ageBand: ModuleAgeBand[];
+  contentGroup?: "M5-A" | "M5-B";
   prompt: string;
+  promptSequence?: string[];
   promptAudio: string | null;
+  localAudioPath?: string | null;
   choices: string[];
+  choiceImageKeys?: string[];
   choiceImages: string[];
   correctAnswer: string;
   difficultyLevel: string;
   placeholder: boolean;
+  labels?: string[];
   notes: string;
 };
 
