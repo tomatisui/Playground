@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import {
+  getModuleAssetReadiness,
   getContentAssetStatus,
   getModuleDefinition,
   getPlaceholderModuleLabels,
@@ -222,6 +223,26 @@ export function buildObservedText({
     );
   }
 
+  const reducedScopeRuns = completedAttempts.filter((attempt) =>
+    getModuleAssetReadiness(attempt.moduleCode, ageYears).reducedScope,
+  );
+
+  if (reducedScopeRuns.length > 0) {
+    observations.push(
+      "일부 활동은 축소된 프로토타입 범위로 진행되어 전체 연구 설계보다 짧고 단순한 과제 구성을 사용했습니다.",
+    );
+  }
+
+  const acousticPrototypeRuns = completedAttempts.filter((attempt) =>
+    getModuleAssetReadiness(attempt.moduleCode, ageYears).acousticContentNotFinal,
+  );
+
+  if (acousticPrototypeRuns.length > 0) {
+    observations.push(
+      "일부 말소리 구별 문항은 최종 음향 자산이 아닌 예비 음향 프로토타입 기준으로 진행되었습니다.",
+    );
+  }
+
   return observations.join(" ");
 }
 
@@ -301,6 +322,18 @@ export function getPrototypeGradeStatus(session: {
     completedAttempts.some((attempt) =>
       usesFallbackContentAssets(attempt.moduleCode, session.ageYears),
     )
+  ) {
+    return "prototype_grade";
+  }
+
+  if (
+    completedAttempts.some((attempt) => {
+      const readiness = getModuleAssetReadiness(
+        attempt.moduleCode,
+        session.ageYears,
+      );
+      return readiness.reducedScope || readiness.acousticContentNotFinal;
+    })
   ) {
     return "prototype_grade";
   }

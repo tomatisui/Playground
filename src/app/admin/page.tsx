@@ -1,18 +1,24 @@
 import Link from "next/link";
-import { completeRecommendedModule, toggleModuleCompletion } from "@/app/actions";
+import {
+  createAge5SampleRun,
+  createAge6SampleRun,
+  resetAllSessions,
+  seedSampleSessions,
+} from "@/app/actions";
 import { PrototypeBadge } from "@/components/prototype-badge";
+import {
+  INTERNAL_BUILD_LABEL,
+  INTERNAL_BUILD_NOTES,
+  INTERNAL_BUILD_VERSION,
+} from "@/lib/build-info";
 import { prisma } from "@/lib/prisma";
 import {
+  getAllModuleCodes,
   getContentAssetStatus,
+  getModuleAssetReadiness,
   getModuleDefinition,
   getModuleManifest,
-  getM1ValidationIssues,
-  getM2ValidationIssues,
-  getM3RValidationIssues,
-  getM4ValidationIssues,
-  getModuleReviewFlags,
-  getModuleSubtypeBreakdown,
-  getM5ValidationIssues,
+  getModuleReadinessSummary,
 } from "@/lib/module-catalog";
 import {
   getPrototypeGradeStatus,
@@ -36,6 +42,15 @@ export default async function AdminPage() {
     orderBy: [{ updatedAt: "desc" }],
   });
 
+  const moduleReadiness = getModuleReadinessSummary();
+  const freezeSummary = {
+    implemented: moduleReadiness.filter((module) => module.implemented).length,
+    fallback: moduleReadiness.filter((module) => module.fallbackAudioInUse).length,
+    reduced: moduleReadiness.filter((module) => module.reducedScope).length,
+    acoustic: moduleReadiness.filter((module) => module.acousticContentNotFinal).length,
+    provisional: moduleReadiness.filter((module) => module.provisionalContent).length,
+  };
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
@@ -48,6 +63,12 @@ export default async function AdminPage() {
             <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
               세션 운영 대시보드
             </h1>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+              Internal build {INTERNAL_BUILD_LABEL} · {INTERNAL_BUILD_VERSION}
+            </p>
+            <p className="mt-1 text-sm leading-7 text-[var(--muted)]">
+              {INTERNAL_BUILD_NOTES}
+            </p>
           </div>
           <Link
             href="/consent"
@@ -57,6 +78,174 @@ export default async function AdminPage() {
           </Link>
         </div>
 
+        <div className="mt-6 grid gap-3 md:grid-cols-5">
+          <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Module readiness
+            </p>
+            <p className="mt-2 text-2xl font-semibold">
+              {freezeSummary.implemented}/{moduleReadiness.length}
+            </p>
+            <p className="mt-2 text-sm text-[var(--muted)]">All v0 modules are implemented.</p>
+          </div>
+          <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Fallback audio
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{freezeSummary.fallback}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">Modules currently using fallback assets.</p>
+          </div>
+          <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Reduced scope
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{freezeSummary.reduced}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">Modules marked reduced prototype scope.</p>
+          </div>
+          <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Acoustic not final
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{freezeSummary.acoustic}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">Acoustic prototype modules pending final audio.</p>
+          </div>
+          <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Sessions
+            </p>
+            <p className="mt-2 text-2xl font-semibold">{sessions.length}</p>
+            <p className="mt-2 text-sm text-[var(--muted)]">Stored internal test sessions.</p>
+          </div>
+        </div>
+
+        <div className="mt-6 grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+          <section className="rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Prototype freeze summary
+            </p>
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full min-w-[680px] text-left text-sm">
+                <thead className="text-[var(--muted)]">
+                  <tr>
+                    <th className="pb-3 font-semibold">Module</th>
+                    <th className="pb-3 font-semibold">Ready</th>
+                    <th className="pb-3 font-semibold">Content</th>
+                    <th className="pb-3 font-semibold">Fallback</th>
+                    <th className="pb-3 font-semibold">Reduced</th>
+                    <th className="pb-3 font-semibold">Acoustic</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {moduleReadiness.map((module) => (
+                    <tr key={module.moduleCode} className="border-t border-[var(--line)]">
+                      <td className="py-3 font-semibold">
+                        {module.moduleCode} {module.title}
+                      </td>
+                      <td className="py-3">{module.implemented ? "yes" : "no"}</td>
+                      <td className="py-3">
+                        {module.placeholder
+                          ? "placeholder"
+                          : module.provisionalContent
+                            ? "provisional"
+                            : "real"}
+                      </td>
+                      <td className="py-3">{module.fallbackAudioInUse ? "yes" : "no"}</td>
+                      <td className="py-3">{module.reducedScope ? "yes" : "no"}</td>
+                      <td className="py-3">{module.acousticContentNotFinal ? "yes" : "no"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          <section className="rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-5">
+            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+              Internal test utilities
+            </p>
+            <p className="mt-3 text-sm leading-7 text-[var(--muted)]">
+              Internal-only helpers for local manual testing. These actions change stored session data.
+            </p>
+            <div className="mt-4 grid gap-3">
+              <form action={seedSampleSessions}>
+                <button
+                  type="submit"
+                  className="w-full rounded-[1.1rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white"
+                >
+                  샘플 세션 일괄 생성
+                </button>
+              </form>
+              <form action={createAge5SampleRun}>
+                <button
+                  type="submit"
+                  className="w-full rounded-[1.1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
+                >
+                  5세 샘플 런 생성
+                </button>
+              </form>
+              <form action={createAge6SampleRun}>
+                <button
+                  type="submit"
+                  className="w-full rounded-[1.1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
+                >
+                  6세 샘플 런 생성
+                </button>
+              </form>
+              <form action={resetAllSessions}>
+                <button
+                  type="submit"
+                  className="w-full rounded-[1.1rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-semibold text-rose-900"
+                >
+                  모든 세션 초기화
+                </button>
+              </form>
+            </div>
+          </section>
+        </div>
+
+        <section className="mt-6 rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-5">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+            Asset readiness matrix
+          </p>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[860px] text-left text-sm">
+              <thead className="text-[var(--muted)]">
+                <tr>
+                  <th className="pb-3 font-semibold">Module</th>
+                  <th className="pb-3 font-semibold">Final local audio</th>
+                  <th className="pb-3 font-semibold">Fallback in use</th>
+                  <th className="pb-3 font-semibold">Provisional</th>
+                  <th className="pb-3 font-semibold">Reduced scope</th>
+                  <th className="pb-3 font-semibold">Acoustic not final</th>
+                  <th className="pb-3 font-semibold">Missing audio refs</th>
+                </tr>
+              </thead>
+              <tbody>
+                {getAllModuleCodes().map((moduleCode) => {
+                  const readiness = getModuleAssetReadiness(moduleCode);
+                  const manifest = getModuleManifest(moduleCode);
+
+                  return (
+                    <tr key={moduleCode} className="border-t border-[var(--line)]">
+                      <td className="py-3 font-semibold">
+                        {moduleCode} {manifest?.title ?? "missing"}
+                      </td>
+                      <td className="py-3">{readiness.finalLocalAudioPresent ? "yes" : "no"}</td>
+                      <td className="py-3">{readiness.fallbackAudioInUse ? "yes" : "no"}</td>
+                      <td className="py-3">{readiness.provisionalContent ? "yes" : "no"}</td>
+                      <td className="py-3">{readiness.reducedScope ? "yes" : "no"}</td>
+                      <td className="py-3">{readiness.acousticContentNotFinal ? "yes" : "no"}</td>
+                      <td className="py-3">
+                        {readiness.missingLocalAudioCount}/{readiness.localAudioReferenceCount}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <div className="mt-6 space-y-4">
           {sessions.map((session) => {
             const snapshot = getSessionEngineSnapshot(session);
@@ -65,52 +254,6 @@ export default async function AdminPage() {
               qualityFlags: session.qualityFlags,
             });
             const prototypeGradeStatus = getPrototypeGradeStatus(session);
-            const m1Definition = getModuleDefinition("M1", session.ageYears);
-            const m1Manifest = getModuleManifest("M1");
-            const m1Attempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M1") ??
-              null;
-            const m1ValidationIssues = getM1ValidationIssues(session.ageYears);
-            const m2Definition = getModuleDefinition("M2", session.ageYears);
-            const m2Manifest = getModuleManifest("M2");
-            const m2Attempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M2") ??
-              null;
-            const m2ValidationIssues = getM2ValidationIssues(session.ageYears);
-            const m3Definition = getModuleDefinition("M3", session.ageYears);
-            const m3Manifest = getModuleManifest("M3");
-            const m3Attempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M3") ??
-              null;
-            const m3ReviewFlags = getModuleReviewFlags("M3", session.ageYears);
-            const m3rDefinition = getModuleDefinition("M3-R", session.ageYears);
-            const m3rManifest = getModuleManifest("M3-R");
-            const m3rAttempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M3-R") ??
-              null;
-            const m3rValidationIssues =
-              session.ageYears === 6 ? getM3RValidationIssues(session.ageYears) : [];
-            const m4Definition = getModuleDefinition("M4", session.ageYears);
-            const m4Attempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M4") ??
-              null;
-            const m4ValidationIssues = getM4ValidationIssues(session.ageYears);
-            const m4SubtypeBreakdown = getModuleSubtypeBreakdown("M4", session.ageYears);
-            const m5Definition = getModuleDefinition("M5", session.ageYears);
-            const m5Manifest = getModuleManifest("M5");
-            const m5Attempt =
-              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M5") ??
-              null;
-            const m5ValidationIssues = getM5ValidationIssues(session.ageYears);
-            const m5ReviewFlags = getModuleReviewFlags("M5", session.ageYears);
-            const m1DeliveredCount = Math.min(
-              m1Attempt?.itemCount ?? 0,
-              m1Definition?.testItems.length ?? 0,
-            );
-            const m1CurrentStaircaseLevel =
-              m1Definition && m1DeliveredCount > 0
-                ? m1Definition.testItems[m1DeliveredCount - 1]?.staircaseLevel ?? null
-                : null;
 
             return (
               <article
@@ -118,526 +261,140 @@ export default async function AdminPage() {
                 className="rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-5"
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        {session.guardianRelationship || "Guardian"} · {session.ageYears}세
-                      </p>
-                      <h2 className="mt-1 text-2xl font-semibold">{session.childLabel}</h2>
-                      <p className="mt-1 text-sm text-[var(--muted)]">
-                        {session.guardianName || "Unnamed guardian"} · 현재 위치 {session.currentRoute || "없음"}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                      {session.guardianRelationship || "Guardian"} · {session.ageYears}세
+                    </p>
+                    <h2 className="mt-1 text-2xl font-semibold">{session.childLabel}</h2>
+                    <p className="mt-1 text-sm text-[var(--muted)]">
+                      {session.guardianName || "Unnamed guardian"} · 현재 위치 {session.currentRoute || "없음"}
+                    </p>
+                  </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      {snapshot.expected_modules.map((moduleCode) => {
-                        const complete = snapshot.completed_modules.includes(moduleCode);
+                  <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]">
+                    <p>Prototype grade: {prototypeGradeStatus}</p>
+                    <p className="mt-2">Report level: {getReportLevelCopy(reportLevel)}</p>
+                    <p className="mt-2">
+                      Completed: {snapshot.completed_modules.length}/{snapshot.expected_modules.length}
+                    </p>
+                  </div>
+                </div>
 
-                        return (
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                  <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]">
+                    <p className="font-semibold text-[var(--foreground)]">Session detail</p>
+                    <p className="mt-2">Age: {session.ageYears}</p>
+                    <p className="mt-2">Current route: {session.currentRoute || "없음"}</p>
+                    <p className="mt-2">Expected modules: {snapshot.expected_modules.join(", ")}</p>
+                    <p className="mt-2">
+                      Completed modules:{" "}
+                      {snapshot.completed_modules.length > 0
+                        ? snapshot.completed_modules.join(", ")
+                        : "없음"}
+                    </p>
+                  </div>
+                  <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]">
+                    <p className="font-semibold text-[var(--foreground)]">Quality flags</p>
+                    {session.qualityFlags.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {session.qualityFlags.map((flag) => (
                           <span
-                            key={moduleCode}
-                            className={`rounded-full px-3 py-1 text-xs font-semibold tracking-[0.14em] ${
-                              complete
-                                ? "bg-emerald-200 text-emerald-900"
-                                : "bg-stone-200 text-stone-700"
-                            }`}
+                            key={flag.id}
+                            className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900"
                           >
-                            {moduleCode}
+                            {flag.flagCode}
                           </span>
-                        );
-                      })}
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                          Session visibility
-                        </p>
-                        <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                          <p>Age: {session.ageYears}</p>
-                          <p>Current route: {session.currentRoute || "없음"}</p>
-                          <p>Expected modules: {snapshot.expected_modules.join(", ")}</p>
-                          <p>
-                            Completed modules:{" "}
-                            {snapshot.completed_modules.length > 0
-                              ? snapshot.completed_modules.join(", ")
-                              : "없음"}
-                          </p>
-                          <p>Prototype grade: {prototypeGradeStatus}</p>
-                        </div>
+                        ))}
                       </div>
-
-                      <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                          Quality flags
-                        </p>
-                        {session.qualityFlags.length > 0 ? (
-                          <div className="mt-3 flex flex-wrap gap-2">
-                            {session.qualityFlags.map((flag) => (
-                              <span
-                                key={flag.id}
-                                className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-900"
-                              >
-                                {flag.flagCode}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-3 text-sm text-[var(--muted)]">없음</p>
-                        )}
-                      </div>
-
-                      <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
-                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                          Provisional level
-                        </p>
-                        <p className="mt-3 text-sm font-semibold">
-                          {getReportLevelCopy(reportLevel)}
-                        </p>
-                        <p className="mt-2 text-sm text-[var(--muted)]">
-                          백분위 규준은 제공하지 않음
-                        </p>
-                        <p className="mt-2 text-sm text-[var(--muted)]">
-                          Placeholder usage:{" "}
-                          {session.moduleAttempts.some((attempt) => {
-                            const definition = getModuleDefinition(
-                              attempt.moduleCode,
-                              session.ageYears,
-                            );
-                            return definition?.placeholder;
-                          })
-                            ? "있음"
-                            : "없음"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Raw summaries
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {session.moduleAttempts.length > 0 ? (
-                          session.moduleAttempts.map((attempt) => {
-                            const definition = getModuleDefinition(attempt.moduleCode);
-
-                            return (
-                              <div key={attempt.id} className="text-sm leading-7 text-[var(--muted)]">
-                                <span className="font-semibold text-[var(--foreground)]">
-                                  {definition ? `${definition.moduleCode} ${definition.title}` : attempt.moduleCode}
-                                </span>
-                                : {attempt.provisionalSummary || "아직 요약 없음"} · status {attempt.status}
-                              </div>
-                            );
-                          })
-                        ) : (
-                          <p className="text-sm text-[var(--muted)]">아직 기록 없음</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Placeholder module usage
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {session.moduleAttempts.filter((attempt) => {
-                          const definition = getModuleDefinition(
-                            attempt.moduleCode,
-                            session.ageYears,
-                          );
-                          return definition?.placeholder;
-                        }).length > 0 ? (
-                          session.moduleAttempts
-                            .filter((attempt) => {
-                              const definition = getModuleDefinition(
-                                attempt.moduleCode,
-                                session.ageYears,
-                              );
-                              return definition?.placeholder;
-                            })
-                            .map((attempt) => (
-                              <p key={attempt.id} className="text-sm leading-7 text-[var(--muted)]">
-                                {attempt.moduleCode}: placeholder flow used
-                              </p>
-                            ))
-                        ) : (
-                          <p className="text-sm text-[var(--muted)]">없음</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M1 content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          Acoustic content provisional:{" "}
-                          {m1Manifest?.labels.includes("acoustic_content_not_final")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M1 fallback audio used:{" "}
-                          {getContentAssetStatus("M1", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M1 content status: {getContentAssetStatus("M1", session.ageYears)}
-                        </p>
-                        <p>
-                          M1 items delivered: {m1Attempt?.itemCount ?? 0}
-                          {m1Definition ? ` / ${m1Definition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          Current staircase level reached:{" "}
-                          {m1CurrentStaircaseLevel ?? "not_started"}
-                        </p>
-                        <p>
-                          M1 malformed item flags:{" "}
-                          {m1ValidationIssues.length === 0 ? "none" : `${m1ValidationIssues.length} flag(s)`}
-                        </p>
-                        {m1ValidationIssues.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m1ValidationIssues.map((issue) => (
-                              <p key={issue}>{issue}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M2 content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          Provisional prototype content:{" "}
-                          {m2Manifest?.labels.includes("provisional_prototype_content")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M2 familiarization pool: {m2Manifest?.trainingPool?.length ?? 0} word(s)
-                        </p>
-                        <p>
-                          M2 pre-learning rule:{" "}
-                          {m2Manifest?.preLearning
-                            ? `${m2Manifest.preLearning.interaction} -> ${m2Manifest.preLearning.recognitionCheck}`
-                            : "missing"}
-                        </p>
-                        <p>
-                          M2 training mastery threshold:{" "}
-                          {m2Manifest?.preLearning?.trainingMasteryThreshold ?? "missing"}
-                        </p>
-                        <p>
-                          M2 prototype default threshold:{" "}
-                          {m2Manifest?.preLearning?.prototypeDefaultThreshold ?? "missing"}
-                        </p>
-                        <p>
-                          M2 proposal alt threshold:{" "}
-                          {m2Manifest?.preLearning?.proposalAltThreshold ?? "missing"}
-                        </p>
-                        <p>
-                          M2 active threshold note: proposal text appears internally inconsistent, so both thresholds stay documented.
-                        </p>
-                        <p>
-                          M2 training mastery status:{" "}
-                          {!m2Attempt
-                            ? "not_started"
-                            : m2Attempt.practiceRuns === 0
-                              ? "not_started"
-                              : m2Attempt.practiceFailures >= 2
-                                ? "below_threshold"
-                                : "met_or_proceeded"}
-                        </p>
-                        <p>
-                          M2 items delivered: {m2Attempt?.itemCount ?? 0}
-                          {m2Definition ? ` / ${m2Definition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          M2 fallback audio/noise used:{" "}
-                          {getContentAssetStatus("M2", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M2 content status: {getContentAssetStatus("M2", session.ageYears)}
-                        </p>
-                        <p>
-                          M2 malformed item flags:{" "}
-                          {m2ValidationIssues.length === 0 ? "none" : `${m2ValidationIssues.length} flag(s)`}
-                        </p>
-                        {m2ValidationIssues.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m2ValidationIssues.map((issue) => (
-                              <p key={issue}>{issue}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M3 content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          Provisional prototype content:{" "}
-                          {m3Manifest?.labels.includes("provisional_prototype_content")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M3 training pool: {m3Manifest?.trainingPool?.length ?? 0} noun(s)
-                        </p>
-                        <p>
-                          M3 sequences delivered: {m3Attempt?.itemCount ?? 0}
-                          {m3Definition ? ` / ${m3Definition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          M3 fallback audio/content used:{" "}
-                          {getContentAssetStatus("M3", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M3 content status: {getContentAssetStatus("M3", session.ageYears)}
-                        </p>
-                        <p>
-                          M3 review flags:{" "}
-                          {m3ReviewFlags.length === 0 ? "none" : `${m3ReviewFlags.length} flag(s)`}
-                        </p>
-                        {m3ReviewFlags.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m3ReviewFlags.map((flag) => (
-                              <p key={flag}>{flag}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M3-R content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          Provisional prototype content:{" "}
-                          {m3rManifest?.labels.includes("provisional_prototype_content")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M3-R sequences delivered: {m3rAttempt?.itemCount ?? 0}
-                          {m3rDefinition ? ` / ${m3rDefinition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          M3-R fallback audio/content used:{" "}
-                          {getContentAssetStatus("M3-R", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M3-R content status: {getContentAssetStatus("M3-R", session.ageYears)}
-                        </p>
-                        <p>
-                          M3-R malformed sequence flags:{" "}
-                          {m3rValidationIssues.length === 0
-                            ? "none"
-                            : `${m3rValidationIssues.length} flag(s)`}
-                        </p>
-                        {m3rValidationIssues.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m3rValidationIssues.map((issue) => (
-                              <p key={issue}>{issue}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M4 content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          M4 subtypes configured:{" "}
-                          {Object.entries(m4SubtypeBreakdown).length > 0
-                            ? Object.entries(m4SubtypeBreakdown)
-                                .map(([subtype, count]) => `${subtype} (${count})`)
-                                .join(", ")
-                            : "none"}
-                        </p>
-                        <p>
-                          M4 reduced prototype scope:{" "}
-                          {getModuleManifest("M4")?.labels.includes("reduced_prototype_scope")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M4 scope note: current prototype uses shorter pattern lengths than the full research design.
-                        </p>
-                        <p>
-                          M4 subtype run focus:{" "}
-                          {m4Definition
-                            ? Array.from(
-                                new Set(m4Definition.testItems.map((item) => item.contentGroup ?? "unspecified")),
-                              ).join(", ")
-                            : "unknown"}
-                        </p>
-                        <p>
-                          M4 pattern items delivered: {m4Attempt?.itemCount ?? 0}
-                          {m4Definition ? ` / ${m4Definition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          M4 fallback audio used:{" "}
-                          {getContentAssetStatus("M4", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M4 content status: {getContentAssetStatus("M4", session.ageYears)}
-                        </p>
-                        <p>
-                          M4 validation: {m4ValidationIssues.length === 0 ? "ok" : `${m4ValidationIssues.length} issue(s)`}
-                        </p>
-                        {m4ValidationIssues.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m4ValidationIssues.map((issue) => (
-                              <p key={issue}>{issue}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        M5 content debug
-                      </p>
-                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
-                        <p>
-                          Provisional prototype content:{" "}
-                          {m5Manifest?.labels.includes("provisional_prototype_content")
-                            ? "yes"
-                            : "no"}
-                        </p>
-                        <p>
-                          M5 items delivered: {m5Attempt?.itemCount ?? 0}
-                          {m5Definition ? ` / ${m5Definition.testItems.length} configured` : ""}
-                        </p>
-                        <p>
-                          M5 fallback audio used:{" "}
-                          {getContentAssetStatus("M5", session.ageYears) === "real_assets"
-                            ? "no"
-                            : "yes"}
-                        </p>
-                        <p>
-                          M5 content status: {getContentAssetStatus("M5", session.ageYears)}
-                        </p>
-                        <p>
-                          M5 validation: {m5ValidationIssues.length === 0 ? "ok" : `${m5ValidationIssues.length} issue(s)`}
-                        </p>
-                        <p>
-                          M5 lexical review flags:{" "}
-                          {m5ReviewFlags.length === 0 ? "none" : `${m5ReviewFlags.length} flag(s)`}
-                        </p>
-                        {m5ValidationIssues.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m5ValidationIssues.map((issue) => (
-                              <p key={issue}>{issue}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                        {m5ReviewFlags.length > 0 ? (
-                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
-                            {m5ReviewFlags.map((flag) => (
-                              <p key={flag}>{flag}</p>
-                            ))}
-                          </div>
-                        ) : null}
-                      </div>
-                    </div>
+                    ) : (
+                      <p className="mt-2">없음</p>
+                    )}
                   </div>
+                  <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]">
+                    <p className="font-semibold text-[var(--foreground)]">Practice / thresholds</p>
+                    <p className="mt-2">
+                      Active M2 threshold:{" "}
+                      {getModuleManifest("M2")?.preLearning?.trainingMasteryThreshold ?? "missing"}
+                    </p>
+                    <p className="mt-2">
+                      Next recommended module: {snapshot.next_module ?? "complete"}
+                    </p>
+                    <p className="mt-2">
+                      Prototype content note: fallback or reduced-scope runs stay non-diagnostic.
+                    </p>
+                  </div>
+                </div>
 
-                  <div className="w-full max-w-md space-y-3">
-                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-[var(--card)] p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-                        Completion
-                      </p>
-                      <p className="mt-2 text-lg font-semibold">
-                        {snapshot.completed_modules.length}/{snapshot.expected_modules.length}
-                      </p>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
-                        Completed modules are compared directly against `expected_modules`.
-                      </p>
-                      <p className="mt-2 text-sm text-[var(--muted)]">
-                        Next module content status:{" "}
-                        {snapshot.next_module
-                          ? getContentAssetStatus(snapshot.next_module, session.ageYears)
-                          : "complete"}
-                      </p>
-                    </div>
-
-                    <form action={completeRecommendedModule}>
-                      <input type="hidden" name="sessionId" value={session.id} />
-                      <button
-                        type="submit"
-                        className="w-full rounded-[1.1rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white"
-                        disabled={!snapshot.next_module}
-                      >
-                        다음 추천 모듈 완료 처리
-                      </button>
-                    </form>
-
-                    <div className="grid gap-2">
+                <div className="mt-4 overflow-x-auto">
+                  <table className="w-full min-w-[1080px] text-left text-sm">
+                    <thead className="text-[var(--muted)]">
+                      <tr>
+                        <th className="pb-3 font-semibold">Module</th>
+                        <th className="pb-3 font-semibold">Status</th>
+                        <th className="pb-3 font-semibold">Practice</th>
+                        <th className="pb-3 font-semibold">Items</th>
+                        <th className="pb-3 font-semibold">Fallback</th>
+                        <th className="pb-3 font-semibold">Reduced / acoustic</th>
+                        <th className="pb-3 font-semibold">Threshold / staircase</th>
+                        <th className="pb-3 font-semibold">Summary</th>
+                      </tr>
+                    </thead>
+                    <tbody>
                       {snapshot.expected_modules.map((moduleCode) => {
-                        const complete = snapshot.completed_modules.includes(moduleCode);
+                        const attempt =
+                          session.moduleAttempts.find((item) => item.moduleCode === moduleCode) ?? null;
+                        const definition = getModuleDefinition(moduleCode, session.ageYears);
+                        const readiness = getModuleAssetReadiness(moduleCode, session.ageYears);
+                        const deliveredCount = Math.min(
+                          attempt?.itemCount ?? 0,
+                          definition?.testItems.length ?? 0,
+                        );
+                        const staircaseLevel =
+                          moduleCode === "M1" && definition && deliveredCount > 0
+                            ? definition.testItems[deliveredCount - 1]?.staircaseLevel ?? null
+                            : null;
 
                         return (
-                          <form
-                            key={moduleCode}
-                            action={toggleModuleCompletion}
-                            className="flex items-center justify-between gap-3 rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3"
-                          >
-                            <input type="hidden" name="sessionId" value={session.id} />
-                            <input type="hidden" name="moduleCode" value={moduleCode} />
-                            <input type="hidden" name="shouldComplete" value={String(!complete)} />
-                            <span className="text-sm font-semibold">
-                              {moduleCode}
-                              <span className="ml-2 text-xs font-normal text-[var(--muted)]">
-                                {getContentAssetStatus(moduleCode, session.ageYears)}
-                              </span>
-                            </span>
-                            <button
-                              type="submit"
-                              className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                                complete
-                                  ? "bg-stone-200 text-stone-700"
-                                  : "bg-emerald-200 text-emerald-900"
-                              }`}
-                            >
-                              {complete ? "Reset" : "Complete"}
-                            </button>
-                          </form>
+                          <tr key={moduleCode} className="border-t border-[var(--line)] align-top">
+                            <td className="py-3 font-semibold">
+                              {moduleCode} {definition?.title ?? "missing"}
+                            </td>
+                            <td className="py-3">
+                              {attempt?.status ?? "NOT_STARTED"}
+                              {attempt?.completedAt ? " / complete" : ""}
+                            </td>
+                            <td className="py-3">
+                              runs {attempt?.practiceRuns ?? 0}, failures {attempt?.practiceFailures ?? 0}
+                            </td>
+                            <td className="py-3">
+                              {attempt?.itemCount ?? 0}/{definition?.testItems.length ?? 0}
+                            </td>
+                            <td className="py-3">
+                              {getContentAssetStatus(moduleCode, session.ageYears)} /{" "}
+                              {readiness.fallbackAudioInUse ? "fallback" : "final"}
+                            </td>
+                            <td className="py-3">
+                              {readiness.reducedScope ? "reduced " : ""}
+                              {readiness.acousticContentNotFinal ? "acoustic_not_final" : ""}
+                              {!readiness.reducedScope && !readiness.acousticContentNotFinal
+                                ? "none"
+                                : ""}
+                            </td>
+                            <td className="py-3">
+                              {moduleCode === "M2"
+                                ? `threshold ${getModuleManifest("M2")?.preLearning?.trainingMasteryThreshold ?? "missing"}`
+                                : moduleCode === "M1"
+                                  ? `level ${staircaseLevel ?? "not_started"}`
+                                  : "-"}
+                            </td>
+                            <td className="py-3 max-w-[280px] text-[var(--muted)]">
+                              {attempt?.provisionalSummary || "아직 요약 없음"}
+                            </td>
+                          </tr>
                         );
                       })}
-                    </div>
-
-                    <Link
-                      href={`/session/${session.id}/report`}
-                      className="block rounded-[1.1rem] border border-[var(--line)] bg-white px-4 py-3 text-center text-sm font-semibold"
-                    >
-                      보고서 보기
-                    </Link>
-                  </div>
+                    </tbody>
+                  </table>
                 </div>
               </article>
             );

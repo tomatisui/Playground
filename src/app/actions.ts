@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { getModuleDefinition } from "@/lib/module-catalog";
 import { getCompletionSnapshot, isExpectedModule } from "@/lib/screening-config";
 import {
   buildProvisionalSummary,
@@ -21,6 +22,82 @@ async function getSessionOrThrow(sessionId: string) {
 
   if (!session) {
     throw new Error("Session not found.");
+  }
+
+  return session;
+}
+
+async function createSampleSession({
+  ageYears,
+  childLabel,
+  guardianName,
+  guardianRelationship,
+  completedModules,
+  qualityFlags = [],
+  currentRoute,
+}: {
+  ageYears: 5 | 6;
+  childLabel: string;
+  guardianName: string;
+  guardianRelationship: string;
+  completedModules: string[];
+  qualityFlags?: Array<{ flagCode: string; note: string }>;
+  currentRoute?: string;
+}) {
+  const session = await prisma.screeningSession.create({
+    data: {
+      childLabel,
+      guardianName,
+      guardianRelationship,
+      ageYears,
+      consentAcceptedAt: new Date(),
+      audioCheckPassed: true,
+      audioCheckCompletedAt: new Date(),
+      currentRoute:
+        currentRoute ??
+        (completedModules.length === (ageYears === 6 ? 6 : 5)
+          ? "/admin"
+          : "/session/sample/practice"),
+      lastActiveAt: new Date(),
+    },
+  });
+
+  for (const moduleCode of completedModules) {
+    const definition = getModuleDefinition(moduleCode, ageYears);
+    const itemCount = definition?.testItems.length ?? 0;
+    const correctCount = Math.max(0, itemCount - 1);
+
+    await prisma.screeningModuleAttempt.create({
+      data: {
+        sessionId: session.id,
+        moduleCode,
+        status: "COMPLETED",
+        startedAt: new Date(),
+        completedAt: new Date(),
+        practiceRuns: definition?.practiceItems.length ? 1 : 0,
+        practiceFailures: moduleCode === "M2" ? 1 : 0,
+        lastItemIndex: itemCount,
+        itemCount,
+        correctCount,
+        caregiverAssistCount: moduleCode === "M2" ? 1 : 0,
+        provisionalSummary: buildProvisionalSummary(moduleCode, correctCount, itemCount),
+        responseLog: JSON.stringify(
+          Array.from({ length: itemCount }, (_, index) =>
+            definition?.testItems[index]?.correctAnswer ?? "",
+          ),
+        ),
+      },
+    });
+  }
+
+  for (const flag of qualityFlags) {
+    await prisma.screeningQualityFlag.create({
+      data: {
+        sessionId: session.id,
+        flagCode: flag.flagCode,
+        note: flag.note,
+      },
+    });
   }
 
   return session;
@@ -210,6 +287,84 @@ export async function toggleModuleCompletion(formData: FormData) {
       },
     });
   }
+
+  revalidatePath("/admin");
+}
+
+export async function resetAllSessions() {
+  await prisma.$transaction([
+    prisma.screeningQualityFlag.deleteMany(),
+    prisma.screeningModuleAttempt.deleteMany(),
+    prisma.screeningSession.deleteMany(),
+  ]);
+
+  revalidatePath("/admin");
+}
+
+export async function createAge5SampleRun() {
+  await createSampleSession({
+    ageYears: 5,
+    childLabel: "샘플 5세",
+    guardianName: "테스터 보호자",
+    guardianRelationship: "Parent",
+    completedModules: ["M1", "M2", "M3", "M4", "M5"],
+    qualityFlags: [
+      {
+        flagCode: "possible_caregiver_assist",
+        note: "Sample age-5 run includes one caregiver assist note for admin inspection.",
+      },
+    ],
+    currentRoute: "/session/sample-age-5/report",
+  });
+
+  revalidatePath("/admin");
+}
+
+export async function createAge6SampleRun() {
+  await createSampleSession({
+    ageYears: 6,
+    childLabel: "샘플 6세",
+    guardianName: "테스터 보호자",
+    guardianRelationship: "Parent",
+    completedModules: ["M1", "M2", "M3", "M3-R", "M4", "M5"],
+    qualityFlags: [
+      {
+        flagCode: "interrupted_session",
+        note: "Sample age-6 run simulates an interruption and resume for admin inspection.",
+      },
+      {
+        flagCode: "failed_practice",
+        note: "Sample age-6 run simulates repeated practice difficulty.",
+      },
+    ],
+    currentRoute: "/session/sample-age-6/report",
+  });
+
+  revalidatePath("/admin");
+}
+
+export async function seedSampleSessions() {
+  await createAge5SampleRun();
+  await createAge6SampleRun();
+
+  await createSampleSession({
+    ageYears: 6,
+    childLabel: "중단 테스트 세션",
+    guardianName: "내부 테스터",
+    guardianRelationship: "Guardian",
+    completedModules: ["M1", "M2"],
+    qualityFlags: [
+      {
+        flagCode: "audio_check_failed",
+        note: "Sample seeded session keeps a failed audio-check flag for inspection.",
+      },
+      {
+        flagCode: "low_training_mastery",
+        note: "Sample seeded session keeps a low training mastery flag for inspection.",
+      },
+    ],
+    currentRoute: "/session/sample-age-6/module/M3",
+  });
 
   revalidatePath("/admin");
 }

@@ -1,3 +1,5 @@
+import fs from "node:fs";
+import path from "node:path";
 import m1Manifest from "../../content/stimuli/M1.manifest.json";
 import m2Manifest from "../../content/stimuli/M2.manifest.json";
 import m3Manifest from "../../content/stimuli/M3.manifest.json";
@@ -84,6 +86,8 @@ const catalog: Record<string, ModuleManifest> = {
   M5: normalizeManifest(m5Manifest),
 };
 
+const MODULE_CODES = ["M1", "M2", "M3", "M3-R", "M4", "M5"] as const;
+
 function filterItemsForAge(
   items: ModuleItemDefinition[],
   ageYears: number,
@@ -94,6 +98,10 @@ function filterItemsForAge(
 
 export function getModuleManifest(moduleCode: string) {
   return catalog[moduleCode] ?? null;
+}
+
+export function getAllModuleCodes() {
+  return [...MODULE_CODES];
 }
 
 export function getModuleDefinition(moduleCode: string, ageYears?: number) {
@@ -145,6 +153,37 @@ export function usesFallbackContentAssets(moduleCode: string, ageYears?: number)
   );
 }
 
+function toWorkspacePath(relativePath: string) {
+  return path.join(process.cwd(), relativePath);
+}
+
+function getReferencedLocalAudioPaths(definition: ModuleManifest) {
+  const audioPaths = new Set<string>();
+
+  for (const trainingItem of definition.trainingPool ?? []) {
+    if (trainingItem.localAudioPath) {
+      audioPaths.add(trainingItem.localAudioPath);
+    }
+  }
+
+  for (const item of [...definition.practiceItems, ...definition.testItems]) {
+    if (item.localAudioPath) {
+      audioPaths.add(item.localAudioPath);
+    }
+    if (item.promptAudio) {
+      audioPaths.add(item.promptAudio);
+    }
+    if (item.backgroundNoiseAsset) {
+      audioPaths.add(item.backgroundNoiseAsset);
+    }
+    if (item.targetWordAsset) {
+      audioPaths.add(item.targetWordAsset);
+    }
+  }
+
+  return [...audioPaths];
+}
+
 export function getContentAssetStatus(moduleCode: string, ageYears?: number) {
   const definition = getModuleDefinition(moduleCode, ageYears);
 
@@ -159,6 +198,64 @@ export function getContentAssetStatus(moduleCode: string, ageYears?: number) {
   return usesFallbackContentAssets(moduleCode, ageYears)
     ? "fallback_assets"
     : "real_assets";
+}
+
+export function getModuleAssetReadiness(moduleCode: string, ageYears?: number) {
+  const definition = getModuleDefinition(moduleCode, ageYears);
+
+  if (!definition) {
+    return {
+      moduleCode,
+      hasManifest: false,
+      finalLocalAudioPresent: false,
+      fallbackAudioInUse: true,
+      provisionalContent: true,
+      reducedScope: false,
+      acousticContentNotFinal: false,
+      placeholder: false,
+      localAudioReferenceCount: 0,
+      missingLocalAudioCount: 0,
+    };
+  }
+
+  const referencedAudioPaths = getReferencedLocalAudioPaths(definition);
+  const missingAudioPaths = referencedAudioPaths.filter(
+    (audioPath) => !fs.existsSync(toWorkspacePath(audioPath)),
+  );
+
+  return {
+    moduleCode,
+    hasManifest: true,
+    finalLocalAudioPresent:
+      referencedAudioPaths.length > 0 && missingAudioPaths.length === 0,
+    fallbackAudioInUse: usesFallbackContentAssets(moduleCode, ageYears),
+    provisionalContent: definition.labels.includes("provisional_prototype_content"),
+    reducedScope: definition.labels.includes("reduced_prototype_scope"),
+    acousticContentNotFinal: definition.labels.includes("acoustic_content_not_final"),
+    placeholder: definition.placeholder,
+    localAudioReferenceCount: referencedAudioPaths.length,
+    missingLocalAudioCount: missingAudioPaths.length,
+  };
+}
+
+export function getModuleReadinessSummary(ageYears?: number) {
+  return getAllModuleCodes().map((moduleCode) => {
+    const definition = getModuleDefinition(moduleCode, ageYears);
+    const readiness = getModuleAssetReadiness(moduleCode, ageYears);
+
+    return {
+      moduleCode,
+      title: definition?.title ?? "missing",
+      implemented: Boolean(definition?.implemented),
+      placeholder: readiness.placeholder,
+      fallbackAudioInUse: readiness.fallbackAudioInUse,
+      provisionalContent: readiness.provisionalContent,
+      reducedScope: readiness.reducedScope,
+      acousticContentNotFinal: readiness.acousticContentNotFinal,
+      finalLocalAudioPresent: readiness.finalLocalAudioPresent,
+      contentStatus: getContentAssetStatus(moduleCode, ageYears),
+    };
+  });
 }
 
 export function getM5ValidationIssues(ageYears: number) {

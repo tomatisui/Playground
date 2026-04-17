@@ -100,6 +100,19 @@ export default async function ReportPage({
         </div>
 
         <div className="mt-6 space-y-4">
+          {prototypeGradeStatus === "prototype_grade" ? (
+            <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+              <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                프로토타입 안내
+              </p>
+              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                이번 세션에는 예비 콘텐츠, 대체 오디오, 또는 축소된 프로토타입 범위의
+                활동이 포함될 수 있어 결과는 부드러운 관찰 참고로 이해하는 것이
+                적절합니다.
+              </p>
+            </article>
+          ) : null}
+
           <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
               무엇이 관찰되었나요?
