@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { PrototypeBadge } from "@/components/prototype-badge";
 
 export default function ConsentPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+        <PrototypeBadge />
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
           Consent
         </p>

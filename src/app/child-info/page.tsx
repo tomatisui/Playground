@@ -1,9 +1,17 @@
 import { createSession } from "@/app/actions";
+import { PrototypeBadge } from "@/components/prototype-badge";
 
-export default function ChildInfoPage() {
+export default async function ChildInfoPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string }>;
+}) {
+  const { error } = await searchParams;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+        <PrototypeBadge />
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
           Child info
         </p>
@@ -15,12 +23,21 @@ export default function ChildInfoPage() {
           정보만 받습니다.
         </p>
 
+        {error ? (
+          <div className="mt-5 rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+            {error === "missing-child-label"
+              ? "아동 이름 또는 식별명을 입력해 주세요."
+              : "세션 정보가 없어서 처음부터 다시 시작해 주세요."}
+          </div>
+        ) : null}
+
         <form action={createSession} className="mt-6 space-y-4">
           <label className="block">
             <span className="mb-2 block text-sm font-semibold">아동 이름 또는 식별명</span>
             <input
               name="childLabel"
               required
+              minLength={1}
               className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
               placeholder="예: 민서"
             />

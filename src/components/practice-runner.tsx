@@ -39,6 +39,7 @@ export function PracticeRunner({
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [submitting, setSubmitting] = useState(false);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
@@ -51,6 +52,7 @@ export function PracticeRunner({
     }
 
     setSubmitting(true);
+    setErrorMessage("");
 
     const correctCount = items.filter(
       (item) => answers[item.id] === item.correctAnswer,
@@ -59,18 +61,27 @@ export function PracticeRunner({
     const nextRuns = practiceRuns + 1;
     const nextFailures = passed ? practiceFailures : practiceFailures + 1;
 
-    await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
+    const response = await fetch(
+      `/api/session/${sessionId}/module/${moduleCode}/progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "practice",
+          practiceRuns: nextRuns,
+          practiceFailures: nextFailures,
+          passed,
+        }),
       },
-      body: JSON.stringify({
-        type: "practice",
-        practiceRuns: nextRuns,
-        practiceFailures: nextFailures,
-        passed,
-      }),
-    });
+    );
+
+    if (!response.ok) {
+      setSubmitting(false);
+      setErrorMessage("연습 결과를 저장하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
 
     setPracticeRuns(nextRuns);
     setPracticeFailures(nextFailures);
@@ -94,6 +105,12 @@ export function PracticeRunner({
           Practice is not scored. Repeated difficulty only adds a quality flag.
         </p>
       </div>
+
+      {errorMessage ? (
+        <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+          {errorMessage}
+        </div>
+      ) : null}
 
       {items.map((item, index) => (
         <article

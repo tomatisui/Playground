@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { completeRecommendedModule, toggleModuleCompletion } from "@/app/actions";
+import { PrototypeBadge } from "@/components/prototype-badge";
 import { prisma } from "@/lib/prisma";
 import { getModuleDefinition } from "@/lib/module-catalog";
 import { getSessionEngineSnapshot, getReportLevel, getReportLevelCopy } from "@/lib/session-runtime";
@@ -22,6 +23,7 @@ export default async function AdminPage() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+        <PrototypeBadge />
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
@@ -86,6 +88,23 @@ export default async function AdminPage() {
                     <div className="grid gap-3 md:grid-cols-2">
                       <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
                         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                          Session visibility
+                        </p>
+                        <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                          <p>Age: {session.ageYears}</p>
+                          <p>Current route: {session.currentRoute || "없음"}</p>
+                          <p>Expected modules: {snapshot.expected_modules.join(", ")}</p>
+                          <p>
+                            Completed modules:{" "}
+                            {snapshot.completed_modules.length > 0
+                              ? snapshot.completed_modules.join(", ")
+                              : "없음"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="rounded-[1.2rem] bg-[var(--card-strong)] p-4">
+                        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                           Quality flags
                         </p>
                         {session.qualityFlags.length > 0 ? (
@@ -114,6 +133,15 @@ export default async function AdminPage() {
                         <p className="mt-2 text-sm text-[var(--muted)]">
                           백분위 규준은 제공하지 않음
                         </p>
+                        <p className="mt-2 text-sm text-[var(--muted)]">
+                          Placeholder usage:{" "}
+                          {session.moduleAttempts.some((attempt) => {
+                            const definition = getModuleDefinition(attempt.moduleCode);
+                            return definition && !definition.implemented;
+                          })
+                            ? "있음"
+                            : "없음"}
+                        </p>
                       </div>
                     </div>
 
@@ -137,6 +165,31 @@ export default async function AdminPage() {
                           })
                         ) : (
                           <p className="text-sm text-[var(--muted)]">아직 기록 없음</p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        Placeholder module usage
+                      </p>
+                      <div className="mt-3 space-y-2">
+                        {session.moduleAttempts.filter((attempt) => {
+                          const definition = getModuleDefinition(attempt.moduleCode);
+                          return definition && !definition.implemented;
+                        }).length > 0 ? (
+                          session.moduleAttempts
+                            .filter((attempt) => {
+                              const definition = getModuleDefinition(attempt.moduleCode);
+                              return definition && !definition.implemented;
+                            })
+                            .map((attempt) => (
+                              <p key={attempt.id} className="text-sm leading-7 text-[var(--muted)]">
+                                {attempt.moduleCode}: placeholder flow used
+                              </p>
+                            ))
+                        ) : (
+                          <p className="text-sm text-[var(--muted)]">없음</p>
                         )}
                       </div>
                     </div>

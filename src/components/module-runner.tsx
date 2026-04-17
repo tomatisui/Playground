@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PlaybackButton } from "@/components/playback-button";
@@ -41,6 +42,7 @@ export function ModuleRunner({
   const [responses, setResponses] = useState(initialResponses);
   const [assistCount, setAssistCount] = useState(initialAssistCount);
   const [saving, setSaving] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
 
@@ -55,6 +57,7 @@ export function ModuleRunner({
     }
 
     setSaving(true);
+    setErrorMessage("");
     const updatedResponses = [...responses];
     updatedResponses[currentIndex] = choice;
 
@@ -70,7 +73,7 @@ export function ModuleRunner({
     };
 
     if (currentIndex === items.length - 1) {
-      await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
+      const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -81,12 +84,18 @@ export function ModuleRunner({
         }),
       });
 
+      if (!response.ok) {
+        setSaving(false);
+        setErrorMessage("문항 결과를 저장하지 못했습니다. 다시 시도해 주세요.");
+        return;
+      }
+
       router.push(nextHref);
       router.refresh();
       return;
     }
 
-    await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
+    const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -98,6 +107,12 @@ export function ModuleRunner({
       }),
     });
 
+    if (!response.ok) {
+      setSaving(false);
+      setErrorMessage("진행 상태를 저장하지 못했습니다. 같은 문항을 다시 선택해 주세요.");
+      return;
+    }
+
     setResponses(updatedResponses);
     setCurrentIndex((value) => value + 1);
     setSaving(false);
@@ -108,7 +123,7 @@ export function ModuleRunner({
     const nextAssistCount = assistCount + 1;
     setAssistCount(nextAssistCount);
 
-    await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
+    const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -118,15 +133,27 @@ export function ModuleRunner({
         caregiverAssistCount: nextAssistCount,
       }),
     });
+
+    if (!response.ok) {
+      setAssistCount((value) => Math.max(0, value - 1));
+      setErrorMessage("보호자 도움 기록을 저장하지 못했습니다. 다시 시도해 주세요.");
+    }
   }
 
   if (!currentItem) {
     return (
-      <div className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-5">
-        <p className="text-sm leading-7 text-[var(--muted)]">
-          This module has already been completed. You can move forward to the next
-          step.
-        </p>
+      <div className="space-y-4">
+        <div className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-5">
+          <p className="text-sm leading-7 text-[var(--muted)]">
+            이 모듈은 이미 완료되어 다음 단계로 이동할 수 있습니다.
+          </p>
+        </div>
+        <Link
+          href={nextHref}
+          className="block rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-center text-sm font-semibold text-white"
+        >
+          다음 단계로 이동
+        </Link>
       </div>
     );
   }
@@ -153,6 +180,12 @@ export function ModuleRunner({
           </p>
         ) : null}
       </div>
+
+      {errorMessage ? (
+        <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+          {errorMessage}
+        </div>
+      ) : null}
 
       <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
         <div className="flex items-center justify-between gap-3">

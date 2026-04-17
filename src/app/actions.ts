@@ -34,9 +34,13 @@ export async function createSession(formData: FormData) {
   ).trim();
   const ageYears = Number(formData.get("ageYears") ?? 5);
 
+  if (!childLabel) {
+    redirect("/child-info?error=missing-child-label");
+  }
+
   const session = await prisma.screeningSession.create({
     data: {
-      childLabel: childLabel || "New child",
+      childLabel,
       guardianName: guardianName || null,
       guardianRelationship: guardianRelationship || null,
       ageYears: ageYears === 6 ? 6 : 5,
@@ -52,6 +56,10 @@ export async function createSession(formData: FormData) {
 export async function submitAudioCheck(formData: FormData) {
   const sessionId = String(formData.get("sessionId") ?? "");
   const passed = String(formData.get("passed") ?? "") === "true";
+
+  if (!sessionId) {
+    redirect("/child-info?error=missing-session");
+  }
 
   await prisma.screeningSession.update({
     where: { id: sessionId },

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { PrototypeBadge } from "@/components/prototype-badge";
 import {
   buildLimitationsText,
   buildNextActionText,
@@ -22,7 +22,37 @@ export default async function ReportPage({
   const session = await getSessionWithDetails(id);
 
   if (!session) {
-    notFound();
+    return (
+      <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
+        <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+          <PrototypeBadge />
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+            Parent-facing report
+          </p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
+            세션을 찾을 수 없습니다
+          </h1>
+          <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+            보고서를 불러올 세션 정보가 없습니다. 새 세션을 만들거나 관리자
+            화면에서 기존 세션을 확인해 주세요.
+          </p>
+          <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+            <Link
+              href="/child-info"
+              className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-center text-sm font-semibold text-white"
+            >
+              새 세션 만들기
+            </Link>
+            <Link
+              href="/admin"
+              className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-center text-sm font-semibold"
+            >
+              관리자 보기
+            </Link>
+          </div>
+        </section>
+      </main>
+    );
   }
 
   await touchSessionRoute(id, `/session/${id}/report`, null);
@@ -42,12 +72,17 @@ export default async function ReportPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+        <PrototypeBadge />
         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
           Parent-facing report
         </p>
         <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
           비진단적 관찰 요약
         </h1>
+        <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
+          이 화면은 보호자와 내부 테스트를 위한 프로토타입 요약입니다. 결과는
+          관찰 수준의 안내이며 진단이나 규준 백분위를 의미하지 않습니다.
+        </p>
         <div className="mt-6 rounded-[1.6rem] bg-[var(--accent-strong)] p-5 text-white">
           <p className="text-xs uppercase tracking-[0.18em] text-white/80">
             Current level
