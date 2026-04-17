@@ -36,6 +36,8 @@ export type ModuleItemDefinition = {
   targetWordAsset?: string | null;
   onsetTimeMs?: number | null;
   relativeLevelDb?: number | null;
+  consonantDurationMs?: number | null;
+  staircaseLevel?: number | null;
   notes: string;
 };
 
@@ -43,6 +45,8 @@ export type ModulePreLearningConfig = {
   interaction: string;
   recognitionCheck: string;
   trainingMasteryThreshold: number;
+  prototypeDefaultThreshold?: number;
+  proposalAltThreshold?: number;
   notes?: string;
 };
 
@@ -303,6 +307,18 @@ export function getM2ValidationIssues(ageYears: number) {
 
   if (!definition.preLearning) {
     issues.push("M2 pre-learning metadata is missing.");
+  } else {
+    if (definition.preLearning.trainingMasteryThreshold !== 0.6) {
+      issues.push(
+        `M2 active prototype threshold should be 0.6, found ${definition.preLearning.trainingMasteryThreshold}.`,
+      );
+    }
+    if (definition.preLearning.prototypeDefaultThreshold !== 0.6) {
+      issues.push("M2 prototype_default_threshold should be 0.6.");
+    }
+    if (definition.preLearning.proposalAltThreshold !== 0.7) {
+      issues.push("M2 proposal_alt_threshold should be 0.7.");
+    }
   }
 
   if ((definition.trainingPool?.length ?? 0) !== 10) {
@@ -324,6 +340,39 @@ export function getM2ValidationIssues(ageYears: number) {
 
     if (!item.choices.includes(item.correctAnswer)) {
       issues.push(`${item.id}: correct answer must be present among the four choices.`);
+    }
+  }
+
+  return issues;
+}
+
+export function getM1ValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M1", ageYears);
+
+  if (!definition) {
+    return ["M1 manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+
+  for (const item of [...definition.practiceItems, ...definition.testItems]) {
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+    if (!item.labels?.includes("acoustic_content_not_final")) {
+      issues.push(`${item.id}: acoustic_content_not_final label is missing.`);
+    }
+    if (!["바", "다"].includes(item.correctAnswer)) {
+      issues.push(`${item.id}: M1 correct answer must be 바 or 다.`);
+    }
+    if (item.choices.length !== 2 || !item.choices.includes("바") || !item.choices.includes("다")) {
+      issues.push(`${item.id}: M1 choices must be exactly 바 and 다.`);
+    }
+    if ((item.staircaseLevel ?? 0) <= 0) {
+      issues.push(`${item.id}: staircaseLevel is required for acoustic prototype items.`);
+    }
+    if ((item.consonantDurationMs ?? 0) <= 0) {
+      issues.push(`${item.id}: consonantDurationMs is required for acoustic prototype items.`);
     }
   }
 

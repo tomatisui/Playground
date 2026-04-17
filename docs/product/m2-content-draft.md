@@ -33,7 +33,9 @@ Current manifest-backed pre-learning metadata is:
 
 - interaction: `tap_to_hear_word`
 - follow-up recognition check: `four_choice_follow_up`
-- prototype training mastery threshold: `0.5`
+- active prototype training mastery threshold: `0.6`
+
+Threshold policy is documented separately in [m2-threshold-policy.md](/Users/tomatis/Documents/Playground/docs/product/m2-threshold-policy.md).
 
 The current runtime stays simple and reuses the stable practice flow. The future design can make the word-tap familiarization more explicit without changing the session engine.
 

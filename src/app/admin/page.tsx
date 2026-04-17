@@ -6,6 +6,7 @@ import {
   getContentAssetStatus,
   getModuleDefinition,
   getModuleManifest,
+  getM1ValidationIssues,
   getM2ValidationIssues,
   getM3RValidationIssues,
   getM4ValidationIssues,
@@ -64,6 +65,12 @@ export default async function AdminPage() {
               qualityFlags: session.qualityFlags,
             });
             const prototypeGradeStatus = getPrototypeGradeStatus(session);
+            const m1Definition = getModuleDefinition("M1", session.ageYears);
+            const m1Manifest = getModuleManifest("M1");
+            const m1Attempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M1") ??
+              null;
+            const m1ValidationIssues = getM1ValidationIssues(session.ageYears);
             const m2Definition = getModuleDefinition("M2", session.ageYears);
             const m2Manifest = getModuleManifest("M2");
             const m2Attempt =
@@ -96,6 +103,14 @@ export default async function AdminPage() {
               null;
             const m5ValidationIssues = getM5ValidationIssues(session.ageYears);
             const m5ReviewFlags = getModuleReviewFlags("M5", session.ageYears);
+            const m1DeliveredCount = Math.min(
+              m1Attempt?.itemCount ?? 0,
+              m1Definition?.testItems.length ?? 0,
+            );
+            const m1CurrentStaircaseLevel =
+              m1Definition && m1DeliveredCount > 0
+                ? m1Definition.testItems[m1DeliveredCount - 1]?.staircaseLevel ?? null
+                : null;
 
             return (
               <article
@@ -254,6 +269,48 @@ export default async function AdminPage() {
 
                     <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
                       <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M1 content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          Acoustic content provisional:{" "}
+                          {m1Manifest?.labels.includes("acoustic_content_not_final")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M1 fallback audio used:{" "}
+                          {getContentAssetStatus("M1", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M1 content status: {getContentAssetStatus("M1", session.ageYears)}
+                        </p>
+                        <p>
+                          M1 items delivered: {m1Attempt?.itemCount ?? 0}
+                          {m1Definition ? ` / ${m1Definition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          Current staircase level reached:{" "}
+                          {m1CurrentStaircaseLevel ?? "not_started"}
+                        </p>
+                        <p>
+                          M1 malformed item flags:{" "}
+                          {m1ValidationIssues.length === 0 ? "none" : `${m1ValidationIssues.length} flag(s)`}
+                        </p>
+                        {m1ValidationIssues.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m1ValidationIssues.map((issue) => (
+                              <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                         M2 content debug
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
@@ -275,6 +332,17 @@ export default async function AdminPage() {
                         <p>
                           M2 training mastery threshold:{" "}
                           {m2Manifest?.preLearning?.trainingMasteryThreshold ?? "missing"}
+                        </p>
+                        <p>
+                          M2 prototype default threshold:{" "}
+                          {m2Manifest?.preLearning?.prototypeDefaultThreshold ?? "missing"}
+                        </p>
+                        <p>
+                          M2 proposal alt threshold:{" "}
+                          {m2Manifest?.preLearning?.proposalAltThreshold ?? "missing"}
+                        </p>
+                        <p>
+                          M2 active threshold note: proposal text appears internally inconsistent, so both thresholds stay documented.
                         </p>
                         <p>
                           M2 training mastery status:{" "}

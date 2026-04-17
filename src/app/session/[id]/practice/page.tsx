@@ -111,6 +111,9 @@ export default async function PracticePage({
                 playbackType={definition.playbackType ?? "tts"}
                 instructions={definition.instructions ?? ""}
                 items={definition.practiceItems ?? []}
+                trainingMasteryThreshold={
+                  definition.preLearning?.trainingMasteryThreshold ?? 0.5
+                }
                 initialPracticeRuns={attempt?.practiceRuns ?? 0}
                 initialPracticeFailures={attempt?.practiceFailures ?? 0}
                 moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}

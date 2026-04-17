@@ -53,6 +53,8 @@ Item fields:
 - `targetWordAsset`: optional future-ready target-word asset reference
 - `onsetTimeMs`: optional future-ready target onset timing
 - `relativeLevelDb`: optional future-ready target-versus-noise level hint
+- `consonantDurationMs`: optional future-ready acoustic cue duration
+- `staircaseLevel`: optional staircase-ready acoustic difficulty marker
 - `notes`: internal content note
 
 ## Runtime expectations

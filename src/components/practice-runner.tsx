@@ -18,6 +18,7 @@ type PracticeRunnerProps = {
   playbackType: "tts" | "pattern";
   instructions: string;
   items: PracticeItem[];
+  trainingMasteryThreshold?: number;
   initialPracticeRuns: number;
   initialPracticeFailures: number;
   moduleHref: string;
@@ -29,6 +30,7 @@ export function PracticeRunner({
   playbackType,
   instructions,
   items,
+  trainingMasteryThreshold = 0.5,
   initialPracticeRuns,
   initialPracticeFailures,
   moduleHref,
@@ -57,7 +59,7 @@ export function PracticeRunner({
     const correctCount = items.filter(
       (item) => answers[item.id] === item.correctAnswer,
     ).length;
-    const passed = correctCount / items.length >= 0.5;
+    const passed = correctCount / items.length >= trainingMasteryThreshold;
     const nextRuns = practiceRuns + 1;
     const nextFailures = passed ? practiceFailures : practiceFailures + 1;
 

@@ -80,8 +80,10 @@
   "preLearning": {
     "interaction": "tap_to_hear_word",
     "recognitionCheck": "four_choice_follow_up",
-    "trainingMasteryThreshold": 0.5,
-    "notes": "Current prototype reuses the stable generic practice pass rule. Children can tap to hear the target word in the intended future design, then complete a 4-choice recognition check before scored items."
+    "trainingMasteryThreshold": 0.6,
+    "prototypeDefaultThreshold": 0.6,
+    "proposalAltThreshold": 0.7,
+    "notes": "Current prototype default threshold is 0.6 so the stable runtime can stay slightly more permissive in early manual testing. Proposal text also references 0.7 in a way that appears internally inconsistent, so both values are documented explicitly for product review."
   },
   "practiceItems": [
     {
