@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Playground",
-  description: "Next.js starter with TypeScript, Tailwind, Prisma, and SQLite.",
+  title: "Preschool Listening Screen Prototype",
+  description:
+    "Mobile-first prototype for a non-diagnostic preschool listening-risk screening workflow.",
 };
 
 export default function RootLayout({

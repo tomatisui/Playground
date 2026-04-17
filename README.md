@@ -1,43 +1,58 @@
-## Playground
+## Preschool Listening Screen Prototype
 
-Starter app built with Next.js 16 App Router, TypeScript, Tailwind CSS v4, Prisma, and SQLite.
+Mobile-first web prototype for a non-diagnostic preschool listening-risk screening platform using Next.js, TypeScript, Tailwind CSS, Prisma, and SQLite.
 
-## Getting Started
+## Frozen module structure
+
+Age 5:
+
+- `M1` phonemic discrimination
+- `M2` speech-in-noise
+- `M3` auditory working memory forward
+- `M4` auditory pattern recognition
+- `M5` phonological awareness
+
+Age 6:
+
+- `M1` phonemic discrimination
+- `M2` speech-in-noise
+- `M3` auditory working memory forward
+- `M3-R` auditory working memory backward
+- `M4` auditory pattern recognition
+- `M5` phonological awareness
+
+## Implementation priority
+
+1. common session engine
+2. `M3`
+3. `M4`
+4. `M5`
+5. `M3-R`
+6. `M2`
+7. `M1`
+
+## Current prototype assumptions
+
+- `expected_modules` is config-driven by age and used for admin completion checks
+- `M5` is mandatory for both age 5 and age 6
+- `M3-R` is only expected for age 6
+- module tracking is binary in this phase: complete or not complete
+- percentile norms are intentionally not implemented yet
+- parent-facing result copy stays non-diagnostic
+
+## Getting started
 
 ```bash
 npm install
+npm run prisma:generate
 npm run db:init
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+## Key files
 
-## Database
-
-Prisma is configured for a local SQLite database through `.env`.
-
-Useful commands:
-
-```bash
-npm run prisma:generate
-npm run db:init
-npm run db:migrate
-npm run db:studio
-```
-
-The Prisma schema lives in `prisma/schema.prisma`, and the generated client is written to `src/generated/prisma`.
-
-`db:init` applies the checked-in SQLite migration directly. `db:migrate` is still available for Prisma workflows, but on this local Node 25 setup the Prisma schema engine may need extra troubleshooting before it runs cleanly.
-
-## Project Structure
-
-- `src/app`: App Router pages and layout
-- `src/lib/prisma.ts`: shared Prisma client singleton
-- `prisma/schema.prisma`: database models
-- `.env`: local database connection string
-
-## Next Steps
-
-- Add API routes or server actions for creating and updating records
-- Extend the Prisma schema with your app's domain models
-- Replace the starter dashboard with your product UI
+- `src/lib/screening-config.ts`: frozen module map, priority, and session-engine helpers
+- `src/app/actions.ts`: server actions for admin completion updates
+- `src/app/page.tsx`: mobile-first prototype UI
+- `prisma/schema.prisma`: Prisma data model
+- `prisma/migrations/0002_screening_prototype/migration.sql`: SQLite prototype tables and demo records

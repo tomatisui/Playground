@@ -7,18 +7,24 @@ datasource db {
   provider = "sqlite"
 }
 
-model Task {
-  id          String     @id @default(cuid())
-  title       String
-  description String?
-  status      TaskStatus @default(BACKLOG)
-  dueDate     DateTime?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+model ScreeningSession {
+  id            String                  @id @default(cuid())
+  childLabel    String
+  ageYears      Int
+  classroomLabel String?
+  createdAt     DateTime                @default(now())
+  updatedAt     DateTime                @updatedAt
+  moduleAttempts ScreeningModuleAttempt[]
 }
 
-enum TaskStatus {
-  BACKLOG
-  IN_PROGRESS
-  DONE
+model ScreeningModuleAttempt {
+  id          String           @id @default(cuid())
+  sessionId   String
+  moduleCode  String
+  completedAt DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  session     ScreeningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, moduleCode])
 }
