@@ -1,22 +1,86 @@
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "guardianName" TEXT;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "guardianRelationship" TEXT;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "consentAcceptedAt" DATETIME;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "audioCheckPassed" BOOLEAN;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "audioCheckCompletedAt" DATETIME;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "currentRoute" TEXT;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "currentModuleCode" TEXT;
-ALTER TABLE "ScreeningSession" ADD COLUMN IF NOT EXISTS "lastActiveAt" DATETIME;
+PRAGMA foreign_keys=OFF;
 
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "status" TEXT NOT NULL DEFAULT 'NOT_STARTED';
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "startedAt" DATETIME;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "practiceRuns" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "practiceFailures" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "lastItemIndex" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "correctCount" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "itemCount" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "caregiverAssistCount" INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "provisionalSummary" TEXT;
-ALTER TABLE "ScreeningModuleAttempt" ADD COLUMN IF NOT EXISTS "responseLog" TEXT;
+CREATE TABLE "new_ScreeningSession" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "childLabel" TEXT NOT NULL,
+    "ageYears" INTEGER NOT NULL,
+    "classroomLabel" TEXT,
+    "guardianName" TEXT,
+    "guardianRelationship" TEXT,
+    "consentAcceptedAt" DATETIME,
+    "audioCheckPassed" BOOLEAN,
+    "audioCheckCompletedAt" DATETIME,
+    "currentRoute" TEXT,
+    "currentModuleCode" TEXT,
+    "lastActiveAt" DATETIME,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO "new_ScreeningSession" (
+    "id",
+    "childLabel",
+    "ageYears",
+    "classroomLabel",
+    "createdAt",
+    "updatedAt"
+)
+SELECT
+    "id",
+    "childLabel",
+    "ageYears",
+    "classroomLabel",
+    "createdAt",
+    "updatedAt"
+FROM "ScreeningSession";
+
+DROP TABLE "ScreeningSession";
+ALTER TABLE "new_ScreeningSession" RENAME TO "ScreeningSession";
+
+CREATE TABLE "new_ScreeningModuleAttempt" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "sessionId" TEXT NOT NULL,
+    "moduleCode" TEXT NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'NOT_STARTED',
+    "startedAt" DATETIME,
+    "completedAt" DATETIME,
+    "practiceRuns" INTEGER NOT NULL DEFAULT 0,
+    "practiceFailures" INTEGER NOT NULL DEFAULT 0,
+    "lastItemIndex" INTEGER NOT NULL DEFAULT 0,
+    "correctCount" INTEGER NOT NULL DEFAULT 0,
+    "itemCount" INTEGER NOT NULL DEFAULT 0,
+    "caregiverAssistCount" INTEGER NOT NULL DEFAULT 0,
+    "provisionalSummary" TEXT,
+    "responseLog" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "ScreeningModuleAttempt_sessionId_fkey"
+      FOREIGN KEY ("sessionId") REFERENCES "ScreeningSession" ("id")
+      ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+INSERT INTO "new_ScreeningModuleAttempt" (
+    "id",
+    "sessionId",
+    "moduleCode",
+    "completedAt",
+    "createdAt",
+    "updatedAt"
+)
+SELECT
+    "id",
+    "sessionId",
+    "moduleCode",
+    "completedAt",
+    "createdAt",
+    "updatedAt"
+FROM "ScreeningModuleAttempt";
+
+DROP TABLE "ScreeningModuleAttempt";
+ALTER TABLE "new_ScreeningModuleAttempt" RENAME TO "ScreeningModuleAttempt";
+
+CREATE UNIQUE INDEX "ScreeningModuleAttempt_sessionId_moduleCode_key"
+ON "ScreeningModuleAttempt"("sessionId", "moduleCode");
 
 CREATE TABLE IF NOT EXISTS "ScreeningQualityFlag" (
     "id" TEXT NOT NULL PRIMARY KEY,
@@ -31,3 +95,5 @@ CREATE TABLE IF NOT EXISTS "ScreeningQualityFlag" (
 
 CREATE UNIQUE INDEX IF NOT EXISTS "ScreeningQualityFlag_sessionId_flagCode_key"
 ON "ScreeningQualityFlag"("sessionId", "flagCode");
+
+PRAGMA foreign_keys=ON;
