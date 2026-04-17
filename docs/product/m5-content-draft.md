@@ -20,6 +20,14 @@ This document captures the normalized prototype content pack for `M5` phonologic
 
 This is still `provisional_prototype_content`. It is not normed, validated, or diagnostic.
 
+## Prototype lexical policy
+
+- Prefer familiar 1-2 syllable Korean nouns
+- Allow rare 3-syllable exceptions only if they are highly familiar and easy to picture
+- Any such exception must be marked with `review_needed` metadata for internal review
+- Prefer words that can map cleanly to simple picture cards
+- Avoid abstract vocabulary and regionally narrow vocabulary when possible
+
 ## Why these words were chosen
 
 - They are concrete child-friendly nouns
@@ -52,8 +60,8 @@ This is still `provisional_prototype_content`. It is not normed, validated, or d
 
 ### Age 6 additional M5-A
 
-- `바지, 바다, 바구니, 구름` -> `구름`
-- `시계, 시소, 시금치, 나무` -> `나무`
+- `바지, 바다, 바람, 구름` -> `구름`
+- `시계, 시소, 시장, 나무` -> `나무`
 
 ### Age 6 additional M5-B
 
@@ -75,6 +83,7 @@ This is still `provisional_prototype_content`. It is not normed, validated, or d
 
 - Whether each onset pair is developmentally clean enough for 5-year-olds and 6-year-olds
 - Whether any nouns are less familiar than expected across regions or classrooms
+- Whether the lexical policy should permit any 3-syllable exceptions in the final version
 - Whether the age 6 set should use slightly harder contrasts in the final version
 - Whether prompt wording should be simplified further for standardized administration
 - Whether some image keys should be replaced with more culturally neutral or clearer objects

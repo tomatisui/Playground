@@ -4,76 +4,195 @@
   "implemented": true,
   "ageBand": [5, 6],
   "playbackType": "tts",
-  "instructions": "듣고 난 뒤 같은 순서로 고르세요.",
+  "instructions": "말을 잘 듣고 같은 순서로 고르세요. 이 모듈은 프로토타입 콘텐츠로 구성되어 있습니다.",
+  "trainingPool": [
+    {
+      "label": "공",
+      "imageKey": "ball",
+      "localAudioPath": "content/audio/m3/pool-ball.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "눈",
+      "imageKey": "snow",
+      "localAudioPath": "content/audio/m3/pool-snow.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "밥",
+      "imageKey": "rice",
+      "localAudioPath": "content/audio/m3/pool-rice.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "집",
+      "imageKey": "house",
+      "localAudioPath": "content/audio/m3/pool-house.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "책",
+      "imageKey": "book",
+      "localAudioPath": "content/audio/m3/pool-book.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "문",
+      "imageKey": "door",
+      "localAudioPath": "content/audio/m3/pool-door.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    },
+    {
+      "label": "물",
+      "imageKey": "water",
+      "localAudioPath": "content/audio/m3/pool-water.wav",
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "High-frequency monosyllabic noun for familiarization."
+    }
+  ],
   "practiceItems": [
     {
       "id": "m3-p1",
       "ageBand": [5, 6],
-      "prompt": "하나, 셋",
+      "prompt": "공. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["공", "들은 순서를 그대로 고르세요."],
       "promptAudio": null,
-      "choices": ["하나, 셋", "셋, 하나", "둘, 셋"],
+      "localAudioPath": "content/audio/m3/m3-p1.wav",
+      "choices": ["공", "눈", "집"],
+      "choiceImageKeys": ["ball", "snow", "house"],
       "choiceImages": [],
-      "correctAnswer": "하나, 셋",
-      "difficultyLevel": "practice",
+      "correctAnswer": "공",
+      "difficultyLevel": "practice_one_item",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Practice round 1. Single familiar noun to confirm same-order response format."
     },
     {
       "id": "m3-p2",
       "ageBand": [5, 6],
-      "prompt": "가, 나, 다",
+      "prompt": "공, 집. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["공", "집", "들은 순서를 그대로 고르세요."],
       "promptAudio": null,
-      "choices": ["가, 나, 다", "다, 나, 가", "가, 다, 나"],
+      "localAudioPath": "content/audio/m3/m3-p2.wav",
+      "choices": ["공, 집", "집, 공", "공, 눈"],
+      "choiceImageKeys": ["ball-house", "house-ball", "ball-snow"],
       "choiceImages": [],
-      "correctAnswer": "가, 나, 다",
-      "difficultyLevel": "practice",
+      "correctAnswer": "공, 집",
+      "difficultyLevel": "practice_two_item",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Practice round 2. Two-item same-order sequence with familiar nouns."
     }
   ],
   "testItems": [
     {
-      "id": "m3-t1",
+      "id": "m3-5-1",
       "ageBand": [5, 6],
-      "prompt": "둘, 넷",
+      "prompt": "눈, 밥. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["눈", "밥", "들은 순서를 그대로 고르세요."],
       "promptAudio": null,
-      "choices": ["둘, 넷", "넷, 둘", "둘, 셋"],
+      "localAudioPath": "content/audio/m3/m3-5-1.wav",
+      "choices": ["눈, 밥", "밥, 눈", "눈, 집"],
+      "choiceImageKeys": ["snow-rice", "rice-snow", "snow-house"],
       "choiceImages": [],
-      "correctAnswer": "둘, 넷",
+      "correctAnswer": "눈, 밥",
       "difficultyLevel": "starter",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory item using a 2-item sequence."
     },
     {
-      "id": "m3-t2",
+      "id": "m3-5-2",
       "ageBand": [5, 6],
-      "prompt": "해, 달, 별",
+      "prompt": "문, 물. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["문", "물", "들은 순서를 그대로 고르세요."],
       "promptAudio": null,
-      "choices": ["해, 달, 별", "별, 달, 해", "해, 별, 달"],
+      "localAudioPath": "content/audio/m3/m3-5-2.wav",
+      "choices": ["문, 물", "물, 문", "문, 공"],
+      "choiceImageKeys": ["door-water", "water-door", "door-ball"],
       "choiceImages": [],
-      "correctAnswer": "해, 달, 별",
+      "correctAnswer": "문, 물",
+      "difficultyLevel": "starter",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory item using a 2-item sequence."
+    },
+    {
+      "id": "m3-5-3",
+      "ageBand": [5, 6],
+      "prompt": "공, 집, 책. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["공", "집", "책", "들은 순서를 그대로 고르세요."],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-5-3.wav",
+      "choices": ["공, 집, 책", "책, 집, 공", "공, 책, 집"],
+      "choiceImageKeys": ["ball-house-book", "book-house-ball", "ball-book-house"],
+      "choiceImages": [],
+      "correctAnswer": "공, 집, 책",
       "difficultyLevel": "core",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory item using a 3-item sequence."
     },
     {
-      "id": "m3-t3",
+      "id": "m3-5-4",
       "ageBand": [5, 6],
-      "prompt": "빨강, 노랑, 파랑",
+      "prompt": "눈, 문, 밥. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["눈", "문", "밥", "들은 순서를 그대로 고르세요."],
       "promptAudio": null,
-      "choices": ["빨강, 파랑, 노랑", "빨강, 노랑, 파랑", "노랑, 빨강, 파랑"],
+      "localAudioPath": "content/audio/m3/m3-5-4.wav",
+      "choices": ["눈, 밥, 문", "눈, 문, 밥", "문, 눈, 밥"],
+      "choiceImageKeys": ["snow-rice-door", "snow-door-rice", "door-snow-rice"],
       "choiceImages": [],
-      "correctAnswer": "빨강, 노랑, 파랑",
+      "correctAnswer": "눈, 문, 밥",
       "difficultyLevel": "stretch",
       "placeholder": false,
-      "notes": "Uses spoken fallback because final recorded stimuli are not attached yet."
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory item using a 3-item sequence."
+    },
+    {
+      "id": "m3-6-5",
+      "ageBand": [6],
+      "prompt": "물, 책, 공. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["물", "책", "공", "들은 순서를 그대로 고르세요."],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-6-5.wav",
+      "choices": ["물, 책, 공", "공, 책, 물", "물, 공, 책"],
+      "choiceImageKeys": ["water-book-ball", "ball-book-water", "water-ball-book"],
+      "choiceImages": [],
+      "correctAnswer": "물, 책, 공",
+      "difficultyLevel": "core_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 additional forward-memory item using a 3-item sequence."
+    },
+    {
+      "id": "m3-6-6",
+      "ageBand": [6],
+      "prompt": "집, 눈, 문, 밥. 들은 순서를 그대로 고르세요.",
+      "promptSequence": ["집", "눈", "문", "밥", "들은 순서를 그대로 고르세요."],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-6-6.wav",
+      "choices": ["집, 눈, 문, 밥", "밥, 문, 눈, 집", "집, 문, 눈, 밥"],
+      "choiceImageKeys": ["house-snow-door-rice", "rice-door-snow-house", "house-door-snow-rice"],
+      "choiceImages": [],
+      "correctAnswer": "집, 눈, 문, 밥",
+      "difficultyLevel": "stretch_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 additional forward-memory item using a 4-item sequence."
     }
   ],
   "promptAudio": [],
   "choiceImages": [],
   "correctAnswer": null,
-  "difficultyLevel": "mixed",
+  "difficultyLevel": "prototype_pack",
   "placeholder": false,
-  "labels": ["content_not_final"],
-  "notes": "Content is playable and manifest-backed, but still uses fallback speech synthesis instead of final recorded assets."
+  "labels": ["content_not_final", "provisional_prototype_content"],
+  "notes": "Real prototype M3 content pack using familiar high-frequency monosyllabic Korean nouns. This content is for prototype testing only and still needs expert review."
 }

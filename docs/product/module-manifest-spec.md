@@ -21,6 +21,7 @@ Top-level fields:
 - `ageBand`: supported ages, currently `5` and/or `6`
 - `playbackType`: `tts` or `pattern`
 - `instructions`: runtime instruction copy
+- `trainingPool`: optional familiarization pool for prototype content packs
 - `practiceItems`: array of practice items
 - `testItems`: array of scored items
 - `promptAudio`: reserved list of top-level audio asset references
@@ -37,11 +38,16 @@ Item fields:
 - `ageBand`: ages supported by the item
 - `prompt`: fallback runtime text prompt
 - `promptAudio`: relative asset path or `null`
+- `localAudioPath`: optional local placeholder for future recorded assets
+- `promptSequence`: optional tokenized spoken sequence for content review and future audio prep
 - `choices`: choice labels
+- `choiceImageKeys`: optional internal image keys
 - `choiceImages`: relative asset paths for choice imagery
 - `correctAnswer`: correct choice label
 - `difficultyLevel`: authoring difficulty tag
 - `placeholder`: whether the item is placeholder content
+- `labels`: internal lifecycle and content metadata
+- `reviewNeeded`: optional internal review flag for lexical exceptions or draft items
 - `notes`: internal content note
 
 ## Runtime expectations

@@ -6,6 +6,7 @@ import {
   getContentAssetStatus,
   getModuleDefinition,
   getModuleManifest,
+  getModuleReviewFlags,
   getM5ValidationIssues,
 } from "@/lib/module-catalog";
 import {
@@ -59,12 +60,19 @@ export default async function AdminPage() {
               qualityFlags: session.qualityFlags,
             });
             const prototypeGradeStatus = getPrototypeGradeStatus(session);
+            const m3Definition = getModuleDefinition("M3", session.ageYears);
+            const m3Manifest = getModuleManifest("M3");
+            const m3Attempt =
+              session.moduleAttempts.find((attempt) => attempt.moduleCode === "M3") ??
+              null;
+            const m3ReviewFlags = getModuleReviewFlags("M3", session.ageYears);
             const m5Definition = getModuleDefinition("M5", session.ageYears);
             const m5Manifest = getModuleManifest("M5");
             const m5Attempt =
               session.moduleAttempts.find((attempt) => attempt.moduleCode === "M5") ??
               null;
             const m5ValidationIssues = getM5ValidationIssues(session.ageYears);
+            const m5ReviewFlags = getModuleReviewFlags("M5", session.ageYears);
 
             return (
               <article
@@ -223,6 +231,47 @@ export default async function AdminPage() {
 
                     <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
                       <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                        M3 content debug
+                      </p>
+                      <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
+                        <p>
+                          Provisional prototype content:{" "}
+                          {m3Manifest?.labels.includes("provisional_prototype_content")
+                            ? "yes"
+                            : "no"}
+                        </p>
+                        <p>
+                          M3 training pool: {m3Manifest?.trainingPool?.length ?? 0} noun(s)
+                        </p>
+                        <p>
+                          M3 sequences delivered: {m3Attempt?.itemCount ?? 0}
+                          {m3Definition ? ` / ${m3Definition.testItems.length} configured` : ""}
+                        </p>
+                        <p>
+                          M3 fallback audio/content used:{" "}
+                          {getContentAssetStatus("M3", session.ageYears) === "real_assets"
+                            ? "no"
+                            : "yes"}
+                        </p>
+                        <p>
+                          M3 content status: {getContentAssetStatus("M3", session.ageYears)}
+                        </p>
+                        <p>
+                          M3 review flags:{" "}
+                          {m3ReviewFlags.length === 0 ? "none" : `${m3ReviewFlags.length} flag(s)`}
+                        </p>
+                        {m3ReviewFlags.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m3ReviewFlags.map((flag) => (
+                              <p key={flag}>{flag}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    <div className="rounded-[1.2rem] border border-[var(--line)] bg-white p-4">
+                      <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
                         M5 content debug
                       </p>
                       <div className="mt-3 space-y-2 text-sm text-[var(--muted)]">
@@ -248,10 +297,21 @@ export default async function AdminPage() {
                         <p>
                           M5 validation: {m5ValidationIssues.length === 0 ? "ok" : `${m5ValidationIssues.length} issue(s)`}
                         </p>
+                        <p>
+                          M5 lexical review flags:{" "}
+                          {m5ReviewFlags.length === 0 ? "none" : `${m5ReviewFlags.length} flag(s)`}
+                        </p>
                         {m5ValidationIssues.length > 0 ? (
                           <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
                             {m5ValidationIssues.map((issue) => (
                               <p key={issue}>{issue}</p>
+                            ))}
+                          </div>
+                        ) : null}
+                        {m5ReviewFlags.length > 0 ? (
+                          <div className="rounded-[1rem] border border-amber-200 bg-amber-50 p-3 text-amber-900">
+                            {m5ReviewFlags.map((flag) => (
+                              <p key={flag}>{flag}</p>
                             ))}
                           </div>
                         ) : null}

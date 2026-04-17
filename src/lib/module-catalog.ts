@@ -7,6 +7,15 @@ import m5Manifest from "../../content/stimuli/M5.manifest.json";
 
 export type ModuleAgeBand = 5 | 6;
 
+export type TrainingPoolEntry = {
+  label: string;
+  imageKey?: string;
+  localAudioPath?: string | null;
+  labels?: string[];
+  reviewNeeded?: boolean;
+  notes?: string;
+};
+
 export type ModuleItemDefinition = {
   id: string;
   ageBand: ModuleAgeBand[];
@@ -22,6 +31,7 @@ export type ModuleItemDefinition = {
   difficultyLevel: string;
   placeholder: boolean;
   labels?: string[];
+  reviewNeeded?: boolean;
   notes: string;
 };
 
@@ -33,6 +43,7 @@ export type ModuleManifest = {
   playbackType: "tts" | "pattern";
   instructions: string;
   placeholderCopy?: string;
+  trainingPool?: TrainingPoolEntry[];
   practiceItems: ModuleItemDefinition[];
   testItems: ModuleItemDefinition[];
   promptAudio: string[];
@@ -166,7 +177,41 @@ export function getM5ValidationIssues(ageYears: number) {
     if (!item.labels?.includes("provisional_prototype_content")) {
       issues.push(`${item.id}: prototype content label is missing.`);
     }
+
+    const lexicalExceptions = item.choices.filter((choice) => [...choice].length > 2);
+    if (lexicalExceptions.length > 0 && !item.reviewNeeded) {
+      issues.push(
+        `${item.id}: lexical exception metadata is required for >2-syllable choices (${lexicalExceptions.join(", ")}).`,
+      );
+    }
   }
 
   return issues;
+}
+
+export function getModuleReviewFlags(moduleCode: string, ageYears?: number) {
+  const definition = getModuleDefinition(moduleCode, ageYears);
+
+  if (!definition) {
+    return ["Manifest is missing for this age band."];
+  }
+
+  const flags: string[] = [];
+
+  for (const item of [...definition.practiceItems, ...definition.testItems]) {
+    if (item.reviewNeeded) {
+      flags.push(`${item.id}: review_needed metadata is set.`);
+    }
+  }
+
+  if (moduleCode === "M5") {
+    for (const item of [...definition.practiceItems, ...definition.testItems]) {
+      const lexicalExceptions = item.choices.filter((choice) => [...choice].length > 2);
+      for (const exception of lexicalExceptions) {
+        flags.push(`${item.id}: lexical exception candidate "${exception}" should stay under review.`);
+      }
+    }
+  }
+
+  return flags;
 }
