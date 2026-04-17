@@ -8,23 +8,53 @@ datasource db {
 }
 
 model ScreeningSession {
-  id            String                  @id @default(cuid())
-  childLabel    String
-  ageYears      Int
-  classroomLabel String?
-  createdAt     DateTime                @default(now())
-  updatedAt     DateTime                @updatedAt
-  moduleAttempts ScreeningModuleAttempt[]
+  id                   String                  @id @default(cuid())
+  childLabel           String
+  ageYears             Int
+  classroomLabel       String?
+  guardianName         String?
+  guardianRelationship String?
+  consentAcceptedAt    DateTime?
+  audioCheckPassed     Boolean?
+  audioCheckCompletedAt DateTime?
+  currentRoute         String?
+  currentModuleCode    String?
+  lastActiveAt         DateTime?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+  moduleAttempts       ScreeningModuleAttempt[]
+  qualityFlags         ScreeningQualityFlag[]
 }
 
 model ScreeningModuleAttempt {
-  id          String           @id @default(cuid())
-  sessionId   String
-  moduleCode  String
-  completedAt DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  session     ScreeningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id                  String           @id @default(cuid())
+  sessionId           String
+  moduleCode          String
+  status              String           @default("NOT_STARTED")
+  startedAt           DateTime?
+  completedAt         DateTime?
+  practiceRuns        Int              @default(0)
+  practiceFailures    Int              @default(0)
+  lastItemIndex       Int              @default(0)
+  correctCount        Int              @default(0)
+  itemCount           Int              @default(0)
+  caregiverAssistCount Int             @default(0)
+  provisionalSummary  String?
+  responseLog         String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+  session             ScreeningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
 
   @@unique([sessionId, moduleCode])
+}
+
+model ScreeningQualityFlag {
+  id        String           @id @default(cuid())
+  sessionId String
+  flagCode  String
+  note      String?
+  createdAt DateTime         @default(now())
+  session   ScreeningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, flagCode])
 }

@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
-    "db:init": "sqlite3 prisma/dev.db \".read prisma/migrations/0001_init/migration.sql\" \".read prisma/migrations/0002_screening_prototype/migration.sql\"",
+    "db:init": "sh scripts/db-init.sh",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio"
   },
