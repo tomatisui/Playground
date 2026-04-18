@@ -2,6 +2,7 @@ import Link from "next/link";
 import { completePlaceholderModule } from "@/app/actions";
 import { ModuleRunner } from "@/components/module-runner";
 import { PrototypeBadge } from "@/components/prototype-badge";
+import { SequenceModuleRunner } from "@/components/sequence-memory-runner";
 import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
 import { parseResponseLog, getSessionWithDetails, getSessionEngineSnapshot, touchSessionRoute, upsertQualityFlag } from "@/lib/session-runtime";
 
@@ -156,18 +157,35 @@ export default async function ModulePage({
 
         {(definition.testItems?.length ?? 0) > 0 ? (
           <div className="mt-6">
-            <ModuleRunner
-              sessionId={session.id}
-              moduleCode={definition.moduleCode}
-              playbackType={definition.playbackType ?? "tts"}
-              title={`${definition.moduleCode} ${definition.title}`}
-              instructions={definition.instructions ?? ""}
-              items={definition.testItems ?? []}
-              initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
-              initialResponses={parseResponseLog(attempt?.responseLog ?? null)}
-              initialAssistCount={attempt?.caregiverAssistCount ?? 0}
-              nextHref={nextHref}
-            />
+            {definition.moduleCode === "M3" || definition.moduleCode === "M3-R" ? (
+              <SequenceModuleRunner
+                sessionId={session.id}
+                moduleCode={definition.moduleCode}
+                title={`${definition.moduleCode} ${definition.title}`}
+                instructions={definition.instructions ?? ""}
+                instructionText={definition.instructionText ?? definition.instructions ?? ""}
+                instructionAudio={definition.instructionAudio}
+                visibleChoiceCount={definition.visibleChoiceCount ?? 6}
+                items={definition.testItems ?? []}
+                initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
+                initialResponses={parseResponseLog(attempt?.responseLog ?? null)}
+                initialAssistCount={attempt?.caregiverAssistCount ?? 0}
+                nextHref={nextHref}
+              />
+            ) : (
+              <ModuleRunner
+                sessionId={session.id}
+                moduleCode={definition.moduleCode}
+                playbackType={definition.playbackType ?? "tts"}
+                title={`${definition.moduleCode} ${definition.title}`}
+                instructions={definition.instructions ?? ""}
+                items={definition.testItems ?? []}
+                initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
+                initialResponses={parseResponseLog(attempt?.responseLog ?? null)}
+                initialAssistCount={attempt?.caregiverAssistCount ?? 0}
+                nextHref={nextHref}
+              />
+            )}
           </div>
         ) : (
           <div className="mt-6 space-y-4">

@@ -19,6 +19,9 @@ import {
   getModuleDefinition,
   getModuleManifest,
   getModuleReadinessSummary,
+  getModuleVisibleChoiceCount,
+  getM3RValidationIssues,
+  getM3ValidationIssues,
 } from "@/lib/module-catalog";
 import {
   getPrototypeGradeStatus,
@@ -353,6 +356,10 @@ export default async function AdminPage() {
                           moduleCode === "M1" && definition && deliveredCount > 0
                             ? definition.testItems[deliveredCount - 1]?.staircaseLevel ?? null
                             : null;
+                        const visibleChoiceCount = getModuleVisibleChoiceCount(
+                          moduleCode,
+                          session.ageYears,
+                        );
 
                         return (
                           <tr key={moduleCode} className="border-t border-[var(--line)] align-top">
@@ -383,6 +390,8 @@ export default async function AdminPage() {
                             <td className="py-3">
                               {moduleCode === "M2"
                                 ? `threshold ${getModuleManifest("M2")?.preLearning?.trainingMasteryThreshold ?? "missing"}`
+                                : moduleCode === "M3" || moduleCode === "M3-R"
+                                  ? `choices ${visibleChoiceCount}`
                                 : moduleCode === "M1"
                                   ? `level ${staircaseLevel ?? "not_started"}`
                                   : "-"}
@@ -395,6 +404,66 @@ export default async function AdminPage() {
                       })}
                     </tbody>
                   </table>
+                </div>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-2">
+                  {(["M3", "M3-R"] as const)
+                    .filter((moduleCode) =>
+                      snapshot.expected_modules.includes(moduleCode),
+                    )
+                    .map((moduleCode) => {
+                      const definition = getModuleDefinition(moduleCode, session.ageYears);
+                      const attempt =
+                        session.moduleAttempts.find((item) => item.moduleCode === moduleCode) ??
+                        null;
+                      const validationIssues =
+                        moduleCode === "M3"
+                          ? getM3ValidationIssues(session.ageYears)
+                          : getM3RValidationIssues(session.ageYears);
+
+                      return (
+                        <div
+                          key={moduleCode}
+                          className="rounded-[1.2rem] border border-[var(--line)] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]"
+                        >
+                          <p className="font-semibold text-[var(--foreground)]">
+                            {moduleCode} sequence debug
+                          </p>
+                          <p className="mt-2">
+                            Familiarization completed:{" "}
+                            {attempt?.practiceRuns ? "yes" : "no"}
+                          </p>
+                          <p className="mt-2">
+                            Training mastery result:{" "}
+                            {!attempt?.practiceRuns
+                              ? "not_started"
+                              : (attempt.practiceFailures ?? 0) > 0
+                                ? "low_or_watch"
+                                : "met_or_proceeded"}
+                          </p>
+                          <p className="mt-2">
+                            Fallback audio used:{" "}
+                            {getModuleAssetReadiness(moduleCode, session.ageYears).fallbackAudioInUse
+                              ? "yes"
+                              : "no"}
+                          </p>
+                          <p className="mt-2">
+                            Active visible choice count:{" "}
+                            {getModuleVisibleChoiceCount(moduleCode, session.ageYears)}
+                          </p>
+                          <p className="mt-2">
+                            Practice uses image+text choices:{" "}
+                            {definition?.preLearning?.practiceUsesImageTextChoices ? "yes" : "no"}
+                          </p>
+                          <p className="mt-2">
+                            Malformed config flags:{" "}
+                            {validationIssues.length === 0
+                              ? "none"
+                              : `${validationIssues.length} flag(s)`}
+                          </p>
+                        </div>
+                      );
+                    })}
                 </div>
               </article>
             );

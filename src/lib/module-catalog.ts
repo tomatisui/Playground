@@ -49,6 +49,9 @@ export type ModulePreLearningConfig = {
   trainingMasteryThreshold: number;
   prototypeDefaultThreshold?: number;
   proposalAltThreshold?: number;
+  familiarizationRequired?: boolean;
+  recognitionItems?: ModuleItemDefinition[];
+  practiceUsesImageTextChoices?: boolean;
   notes?: string;
 };
 
@@ -59,7 +62,11 @@ export type ModuleManifest = {
   ageBand: ModuleAgeBand[];
   playbackType: "tts" | "pattern";
   instructions: string;
+  instructionText?: string;
+  instructionAudio?: string | null;
   placeholderCopy?: string;
+  visibleChoiceCount?: number;
+  maxSequenceLength?: number;
   trainingPool?: TrainingPoolEntry[];
   preLearning?: ModulePreLearningConfig;
   practiceItems: ModuleItemDefinition[];
@@ -126,7 +133,20 @@ export function getModuleDefinition(moduleCode: string, ageYears?: number) {
     implemented: !manifest.placeholder,
     practiceItems: filterItemsForAge(manifest.practiceItems, normalizedAge),
     testItems: filterItemsForAge(manifest.testItems, normalizedAge),
+    preLearning: manifest.preLearning
+      ? {
+          ...manifest.preLearning,
+          recognitionItems: filterItemsForAge(
+            manifest.preLearning.recognitionItems ?? [],
+            normalizedAge,
+          ),
+        }
+      : undefined,
   };
+}
+
+export function getModuleVisibleChoiceCount(moduleCode: string, ageYears?: number) {
+  return getModuleDefinition(moduleCode, ageYears)?.visibleChoiceCount ?? 0;
 }
 
 export function getPlaceholderModuleLabels(moduleCode: string) {
@@ -146,7 +166,11 @@ export function usesFallbackContentAssets(moduleCode: string, ageYears?: number)
     return true;
   }
 
-  const allItems = [...definition.practiceItems, ...definition.testItems];
+  const allItems = [
+    ...(definition.preLearning?.recognitionItems ?? []),
+    ...definition.practiceItems,
+    ...definition.testItems,
+  ];
 
   return allItems.some(
     (item) => !item.promptAudio || item.choiceImages.length === 0,
@@ -166,7 +190,11 @@ function getReferencedLocalAudioPaths(definition: ModuleManifest) {
     }
   }
 
-  for (const item of [...definition.practiceItems, ...definition.testItems]) {
+  for (const item of [
+    ...(definition.preLearning?.recognitionItems ?? []),
+    ...definition.practiceItems,
+    ...definition.testItems,
+  ]) {
     if (item.localAudioPath) {
       audioPaths.add(item.localAudioPath);
     }
@@ -339,6 +367,22 @@ export function getM3RValidationIssues(ageYears: number) {
   const issues: string[] = [];
   const checkItems = [...definition.practiceItems, ...definition.testItems];
 
+  if ((definition.trainingPool?.length ?? 0) !== 7) {
+    issues.push(`M3-R familiarization pool should contain 7 words, found ${definition.trainingPool?.length ?? 0}.`);
+  }
+
+  if (definition.visibleChoiceCount !== 6) {
+    issues.push(`M3-R visible choice count should be 6, found ${definition.visibleChoiceCount ?? "missing"}.`);
+  }
+
+  if ((definition.preLearning?.recognitionItems?.length ?? 0) < 1) {
+    issues.push("M3-R should include at least one pre-learning recognition item.");
+  }
+
+  if (!definition.preLearning?.practiceUsesImageTextChoices) {
+    issues.push("M3-R practice should declare image+text choice usage.");
+  }
+
   for (const item of checkItems) {
     if (!item.labels?.includes("provisional_prototype_content")) {
       issues.push(`${item.id}: prototype content label is missing.`);
@@ -348,8 +392,71 @@ export function getM3RValidationIssues(ageYears: number) {
       issues.push(`${item.id}: reverse-memory sequence should include at least 2 heard items.`);
     }
 
-    if (!item.correctAnswer.includes(",")) {
+    if (item.choices.length !== 6) {
+      issues.push(`${item.id}: M3-R items must expose 6 visible choices.`);
+    }
+
+    if ((item.choiceImageKeys?.length ?? 0) !== 6) {
+      issues.push(`${item.id}: M3-R items should include 6 image keys for visible choices.`);
+    }
+
+    if ((item.promptSequence?.length ?? 0) > (definition.maxSequenceLength ?? 5)) {
+      issues.push(`${item.id}: sequence exceeds configured max sequence length.`);
+    }
+
+    if (!item.correctAnswer.includes(",") && (item.promptSequence?.length ?? 0) > 1) {
       issues.push(`${item.id}: reverse-memory answer should encode an ordered sequence.`);
+    }
+  }
+
+  return issues;
+}
+
+export function getM3ValidationIssues(ageYears: number) {
+  const definition = getModuleDefinition("M3", ageYears);
+
+  if (!definition) {
+    return ["M3 manifest is missing for this age band."];
+  }
+
+  const issues: string[] = [];
+  const checkItems = [...definition.practiceItems, ...definition.testItems];
+
+  if ((definition.trainingPool?.length ?? 0) !== 7) {
+    issues.push(`M3 familiarization pool should contain 7 words, found ${definition.trainingPool?.length ?? 0}.`);
+  }
+
+  if (definition.visibleChoiceCount !== 6) {
+    issues.push(`M3 visible choice count should be 6, found ${definition.visibleChoiceCount ?? "missing"}.`);
+  }
+
+  if ((definition.preLearning?.recognitionItems?.length ?? 0) < 1) {
+    issues.push("M3 should include at least one pre-learning recognition item.");
+  }
+
+  if (!definition.preLearning?.practiceUsesImageTextChoices) {
+    issues.push("M3 practice should declare image+text choice usage.");
+  }
+
+  for (const item of checkItems) {
+    if (!item.labels?.includes("provisional_prototype_content")) {
+      issues.push(`${item.id}: prototype content label is missing.`);
+    }
+
+    if (item.choices.length !== 6) {
+      issues.push(`${item.id}: M3 items must expose 6 visible choices.`);
+    }
+
+    if ((item.choiceImageKeys?.length ?? 0) !== 6) {
+      issues.push(`${item.id}: M3 items should include 6 image keys for visible choices.`);
+    }
+
+    const sequenceLength = item.promptSequence?.length ?? 0;
+    if (sequenceLength < 1) {
+      issues.push(`${item.id}: M3 items should include at least one heard word.`);
+    }
+    if (sequenceLength > (definition.maxSequenceLength ?? 5)) {
+      issues.push(`${item.id}: sequence exceeds configured max sequence length.`);
     }
   }
 

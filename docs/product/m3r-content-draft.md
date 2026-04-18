@@ -24,14 +24,22 @@ Why this reuse matters:
 
 ## Practice structure
 
+- familiarization first across the shared 7-word pool
+- lightweight recognition check after familiarization
 - Practice round 1:
-  - 2-item reverse example
-  - heard: `공, 집`
-  - correct choice: `집, 공`
+  - 1-item warmup using the reverse-order interface
+  - heard: `공`
+  - correct choice: `공`
 - Practice round 2:
   - 2-item reverse selection
   - heard: `눈, 문`
   - correct choice: `문, 눈`
+
+Both practice stages now use:
+
+- `6` visible image+text choices
+- ordered answer slots
+- instruction first, then a short delay, then target playback
 
 Practice remains unscored and is only used to confirm that the child understands the reverse-order rule.
 
@@ -42,9 +50,9 @@ Practice remains unscored and is only used to confirm that the child understands
   - heard `공, 밥` -> choose `밥, 공`
 - Core:
   - heard `집, 눈, 문` -> choose `문, 눈, 집`
-  - heard `문, 물, 공` -> choose `공, 물, 문`
+  - heard `문, 물, 공, 책` -> choose `책, 공, 물, 문`
 - Stretch:
-  - heard `공, 집, 책, 눈` -> choose `눈, 책, 집, 공`
+  - heard `공, 집, 책, 눈, 문` -> choose `문, 눈, 책, 집, 공`
 
 Each item includes:
 

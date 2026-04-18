@@ -23,14 +23,28 @@ Why this pool was chosen:
 - Monosyllabic items reduce extra phonological load in a forward-memory prototype
 - The pool is small enough for repeated manual testing without changing runtime logic
 
+## Choice-count and familiarization structure
+
+- familiarization pool size: `7`
+- visible choices during recognition, practice, and test: `6`
+- current maximum sequence length: `5`
+
+This keeps one distractor available at max span while preserving a slightly larger familiarization pool.
+
 ## Practice structure
 
+- familiarization first across all 7 nouns
+- lightweight recognition check after familiarization
 - Practice round 1:
   - single-item sequence
   - `공`
+  - 1 answer slot
+  - 6 visible image+text choices
 - Practice round 2:
   - two-item sequence
   - `공, 집`
+  - 2 answer slots
+  - 6 visible image+text choices
 
 Practice remains unscored and is only used to confirm that the child understands the response format.
 
@@ -41,12 +55,12 @@ Age 5 core prototype set:
 - `눈, 밥`
 - `문, 물`
 - `공, 집, 책`
-- `눈, 문, 밥`
+- `눈, 문, 밥, 물`
 
 Age 6 additional prototype set:
 
-- `물, 책, 공`
-- `집, 눈, 문, 밥`
+- `물, 책, 공, 집`
+- `집, 눈, 문, 밥, 공`
 
 Each item includes:
 

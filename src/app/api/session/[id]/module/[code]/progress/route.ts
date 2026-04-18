@@ -33,6 +33,7 @@ export async function POST(
       update: {
         practiceRuns: body.practiceRuns,
         practiceFailures: body.practiceFailures,
+        responseLog: body.responseLog ?? undefined,
         status: "PRACTICED",
       },
       create: {
@@ -40,9 +41,18 @@ export async function POST(
         moduleCode: code,
         practiceRuns: body.practiceRuns,
         practiceFailures: body.practiceFailures,
+        responseLog: body.responseLog ?? null,
         status: "PRACTICED",
       },
     });
+
+    if (body.trainingMasteryResult === "low") {
+      await upsertQualityFlag(
+        id,
+        "low_training_mastery",
+        `${code} familiarization or practice mastery stayed below the current prototype threshold.`,
+      );
+    }
 
     if (!body.passed && body.practiceFailures >= 2) {
       await upsertQualityFlag(id, "failed_practice", `${code} practice was failed repeatedly.`);

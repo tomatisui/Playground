@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PrototypeBadge } from "@/components/prototype-badge";
 import { PracticeRunner } from "@/components/practice-runner";
+import { SequencePracticeRunner } from "@/components/sequence-memory-runner";
 import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
 import { getSessionWithDetails, touchSessionRoute } from "@/lib/session-runtime";
 import { getSessionEngineSnapshot } from "@/lib/session-runtime";
@@ -105,19 +106,38 @@ export default async function PracticePage({
         {definition.implemented ? (
           (definition.practiceItems?.length ?? 0) > 0 ? (
             <div className="mt-6">
-              <PracticeRunner
-                sessionId={session.id}
-                moduleCode={definition.moduleCode}
-                playbackType={definition.playbackType ?? "tts"}
-                instructions={definition.instructions ?? ""}
-                items={definition.practiceItems ?? []}
-                trainingMasteryThreshold={
-                  definition.preLearning?.trainingMasteryThreshold ?? 0.5
-                }
-                initialPracticeRuns={attempt?.practiceRuns ?? 0}
-                initialPracticeFailures={attempt?.practiceFailures ?? 0}
-                moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
-              />
+              {definition.moduleCode === "M3" || definition.moduleCode === "M3-R" ? (
+                <SequencePracticeRunner
+                  sessionId={session.id}
+                  moduleCode={definition.moduleCode}
+                  instructionText={definition.instructionText ?? definition.instructions ?? ""}
+                  instructionAudio={definition.instructionAudio}
+                  visibleChoiceCount={definition.visibleChoiceCount ?? 6}
+                  trainingMasteryThreshold={
+                    definition.preLearning?.trainingMasteryThreshold ?? 0.5
+                  }
+                  familiarizationItems={definition.trainingPool ?? []}
+                  recognitionItems={definition.preLearning?.recognitionItems ?? []}
+                  practiceItems={definition.practiceItems ?? []}
+                  initialPracticeRuns={attempt?.practiceRuns ?? 0}
+                  initialPracticeFailures={attempt?.practiceFailures ?? 0}
+                  moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
+                />
+              ) : (
+                <PracticeRunner
+                  sessionId={session.id}
+                  moduleCode={definition.moduleCode}
+                  playbackType={definition.playbackType ?? "tts"}
+                  instructions={definition.instructions ?? ""}
+                  items={definition.practiceItems ?? []}
+                  trainingMasteryThreshold={
+                    definition.preLearning?.trainingMasteryThreshold ?? 0.5
+                  }
+                  initialPracticeRuns={attempt?.practiceRuns ?? 0}
+                  initialPracticeFailures={attempt?.practiceFailures ?? 0}
+                  moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
+                />
+              )}
             </div>
           ) : (
             <div className="mt-6 space-y-4">
