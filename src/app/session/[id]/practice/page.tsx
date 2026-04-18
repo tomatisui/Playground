@@ -129,6 +129,8 @@ export default async function PracticePage({
                   moduleCode={definition.moduleCode}
                   playbackType={definition.playbackType ?? "tts"}
                   instructions={definition.instructions ?? ""}
+                  instructionText={definition.instructionText ?? definition.instructions ?? ""}
+                  instructionAudio={definition.instructionAudio}
                   items={definition.practiceItems ?? []}
                   trainingMasteryThreshold={
                     definition.preLearning?.trainingMasteryThreshold ?? 0.5

@@ -5,6 +5,8 @@
   "ageBand": [5, 6],
   "playbackType": "tts",
   "instructions": "말소리를 잘 듣고 바인지 다인지 고르세요. 이 모듈은 계단식 음향 프로토타입으로 구성되어 있습니다.",
+  "instructionText": "말소리를 잘 듣고 바인지 다인지 고르세요.",
+  "instructionAudio": null,
   "trainingPool": [
     {
       "label": "바",

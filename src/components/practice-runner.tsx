@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { PlaybackButton } from "@/components/playback-button";
+import {
+  ChildAudioGuidanceControls,
+  useChildAudioGuidance,
+} from "@/components/child-audio-guidance";
 
 type PracticeItem = {
   id: string;
@@ -17,6 +20,8 @@ type PracticeRunnerProps = {
   moduleCode: string;
   playbackType: "tts" | "pattern";
   instructions: string;
+  instructionText?: string;
+  instructionAudio?: string | null;
   items: PracticeItem[];
   trainingMasteryThreshold?: number;
   initialPracticeRuns: number;
@@ -29,6 +34,8 @@ export function PracticeRunner({
   moduleCode,
   playbackType,
   instructions,
+  instructionText,
+  instructionAudio,
   items,
   trainingMasteryThreshold = 0.5,
   initialPracticeRuns,
@@ -42,6 +49,14 @@ export function PracticeRunner({
   const [submitting, setSubmitting] = useState(false);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
+  const guidance = useChildAudioGuidance({
+    instructionText: instructionText ?? instructions,
+    instructionAudio,
+    stimulusText: currentPracticeItem?.prompt,
+    stimulusPlaybackType: playbackType,
+    autoplayKey: currentPracticeItem ? `${moduleCode}-${currentPracticeItem.id}` : `${moduleCode}-practice`,
+  });
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
@@ -106,6 +121,13 @@ export function PracticeRunner({
         <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
           Practice is not scored. Repeated difficulty only adds a quality flag.
         </p>
+        <div className="mt-4">
+          <ChildAudioGuidanceControls
+            onPlay={guidance.playGuidance}
+            isPlaying={guidance.isPlaying}
+            hasPlayedOnce={guidance.hasPlayedOnce}
+          />
+        </div>
       </div>
 
       {errorMessage ? (
@@ -121,7 +143,7 @@ export function PracticeRunner({
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold">연습 {index + 1}</p>
-            <PlaybackButton playbackType={playbackType} prompt={item.prompt} />
+            <span className="text-xs text-[var(--muted)]">설명 후 문항 재생 사용</span>
           </div>
           <div className="mt-4 grid gap-2">
             {item.choices.map((choice) => (
@@ -134,6 +156,7 @@ export function PracticeRunner({
                     [item.id]: choice,
                   }))
                 }
+                disabled={guidance.isPlaying}
                 className={`rounded-[1rem] border px-4 py-3 text-left text-sm ${
                   answers[item.id] === choice
                     ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"

@@ -5,6 +5,8 @@
   "ageBand": [5, 6],
   "playbackType": "tts",
   "instructions": "말을 잘 듣고 다른 하나를 고르세요. 이 모듈은 프로토타입 콘텐츠로 구성되어 있습니다.",
+  "instructionText": "말을 잘 듣고 다른 하나를 고르세요.",
+  "instructionAudio": null,
   "practiceItems": [
     {
       "id": "m5a-p1",

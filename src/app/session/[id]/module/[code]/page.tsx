@@ -179,6 +179,8 @@ export default async function ModulePage({
                 playbackType={definition.playbackType ?? "tts"}
                 title={`${definition.moduleCode} ${definition.title}`}
                 instructions={definition.instructions ?? ""}
+                instructionText={definition.instructionText ?? definition.instructions ?? ""}
+                instructionAudio={definition.instructionAudio}
                 items={definition.testItems ?? []}
                 initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
                 initialResponses={parseResponseLog(attempt?.responseLog ?? null)}

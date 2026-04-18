@@ -5,6 +5,8 @@
   "ageBand": [5, 6],
   "playbackType": "pattern",
   "instructions": "패턴을 잘 듣고 같은 패턴을 고르세요. 길이 패턴과 높낮이 패턴이 모두 나올 수 있습니다.",
+  "instructionText": "패턴을 잘 듣고 같은 패턴을 고르세요.",
+  "instructionAudio": null,
   "trainingPool": [
     {
       "label": "짧음",

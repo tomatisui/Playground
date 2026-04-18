@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ChildAudioGuidanceControls,
+  useChildAudioGuidance,
+} from "@/components/child-audio-guidance";
+import { speakText } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
   label: string;
@@ -47,24 +52,6 @@ type SequenceModuleRunnerProps = {
   initialAssistCount: number;
   nextHref: string;
 };
-
-function wait(ms: number) {
-  return new Promise((resolve) => {
-    window.setTimeout(resolve, ms);
-  });
-}
-
-async function speakText(text: string) {
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "ko-KR";
-
-  await new Promise<void>((resolve) => {
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  });
-}
 
 function buildTargetText(item: SequenceItem) {
   if ((item.promptSequence?.length ?? 0) > 0) {
@@ -115,10 +102,12 @@ function AnswerSlots({
   count,
   selected,
   onRemove,
+  disabled,
 }: {
   count: number;
   selected: string[];
   onRemove: (index: number) => void;
+  disabled?: boolean;
 }) {
   return (
     <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -130,42 +119,18 @@ function AnswerSlots({
             key={index}
             type="button"
             onClick={() => value && onRemove(index)}
+            disabled={disabled || !value}
             className={`rounded-[1rem] border px-3 py-3 text-left text-sm ${
               value
                 ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)] text-[var(--foreground)]"
                 : "border-dashed border-[var(--line)] bg-white text-[var(--muted)]"
-            }`}
+            } disabled:opacity-50`}
           >
             {value || `빈 자리 ${index + 1}`}
           </button>
         );
       })}
     </div>
-  );
-}
-
-function SequencePlaybackButton({
-  label,
-  disabled,
-  onPlay,
-  isPlaying,
-}: {
-  label: string;
-  disabled?: boolean;
-  onPlay: () => Promise<void>;
-  isPlaying: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        void onPlay();
-      }}
-      disabled={disabled || isPlaying}
-      className="rounded-full bg-[var(--accent-strong)] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
-    >
-      {isPlaying ? "재생 중..." : label}
-    </button>
   );
 }
 
@@ -193,9 +158,12 @@ export function SequencePracticeRunner({
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
-  const [playingKey, setPlayingKey] = useState("");
+  const [playingFamiliarizationKey, setPlayingFamiliarizationKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const autoPlayedPracticeRef = useRef<string>("");
+  const familiarizationGuidance = useChildAudioGuidance({
+    instructionText: "카드를 눌러 단어를 듣고 익혀요.",
+    autoplayKey: `${moduleCode}-familiarization`,
+  });
 
   const currentPracticeIndex = useMemo(() => {
     return practiceItems.findIndex((item) => {
@@ -206,46 +174,32 @@ export function SequencePracticeRunner({
 
   const activePracticeItem =
     currentPracticeIndex >= 0 ? practiceItems[currentPracticeIndex] : practiceItems.at(-1);
+  const recognitionItem = recognitionItems[0];
+  const recognitionGuidance = useChildAudioGuidance({
+    instructionText: "들은 단어와 같은 카드를 골라요.",
+    stimulusText: recognitionItem ? buildTargetText(recognitionItem) : undefined,
+    autoplayKey: recognitionItem ? `${moduleCode}-${recognitionItem.id}` : `${moduleCode}-recognition`,
+  });
+  const practiceGuidance = useChildAudioGuidance({
+    instructionText,
+    instructionAudio,
+    stimulusText: activePracticeItem ? buildTargetText(activePracticeItem) : undefined,
+    autoplayKey: activePracticeItem ? `${moduleCode}-${activePracticeItem.id}` : `${moduleCode}-practice`,
+  });
 
   async function playFamiliarizationLabel(label: string) {
     const playbackKey = `fam-${label}`;
-    if (playingKey) {
+    if (playingFamiliarizationKey || familiarizationGuidance.isPlaying) {
       return;
     }
 
-    setPlayingKey(playbackKey);
+    setPlayingFamiliarizationKey(playbackKey);
     try {
       await speakText(label);
     } finally {
-      setPlayingKey("");
+      setPlayingFamiliarizationKey("");
     }
   }
-
-  useEffect(() => {
-    if (phase !== "practice" || !activePracticeItem) {
-      return;
-    }
-
-    if (autoPlayedPracticeRef.current === activePracticeItem.id) {
-      return;
-    }
-
-    autoPlayedPracticeRef.current = activePracticeItem.id;
-    void (async () => {
-      const playbackKey = `practice-${activePracticeItem.id}`;
-      if (playingKey) {
-        return;
-      }
-      setPlayingKey(playbackKey);
-      try {
-        await speakText(instructionAudio || instructionText);
-        await wait(700);
-        await speakText(buildTargetText(activePracticeItem));
-      } finally {
-        setPlayingKey("");
-      }
-    })();
-  }, [activePracticeItem, instructionAudio, instructionText, phase, playingKey]);
 
   function appendSelection(item: SequenceItem, choice: string) {
     const slotCount = item.promptSequence?.length ?? 1;
@@ -326,13 +280,10 @@ export function SequencePracticeRunner({
       setPhase("recognition");
       setRecognitionAnswer("");
       setPracticeSelections({});
-      autoPlayedPracticeRef.current = "";
     } else {
       setPhase("done");
     }
   }
-
-  const recognitionItem = recognitionItems[0];
   const practiceReady =
     recognitionAnswer &&
     practiceItems.every(
@@ -357,10 +308,19 @@ export function SequencePracticeRunner({
 
       {phase === "familiarization" ? (
         <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
-          <p className="text-sm font-semibold">친숙화</p>
-          <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-            아래 7개 단어를 그림과 글자로 먼저 익힙니다. 각 카드를 눌러 단어를 들을 수 있습니다.
-          </p>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold">친숙화</p>
+              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
+                아래 7개 단어를 그림과 글자로 먼저 익힙니다. 각 카드를 눌러 단어를 들을 수 있습니다.
+              </p>
+            </div>
+            <ChildAudioGuidanceControls
+              onPlay={familiarizationGuidance.playGuidance}
+              isPlaying={familiarizationGuidance.isPlaying}
+              hasPlayedOnce={familiarizationGuidance.hasPlayedOnce}
+            />
+          </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {familiarizationItems.map((item) => (
               <SequenceChoiceCard
@@ -370,7 +330,7 @@ export function SequencePracticeRunner({
                 onClick={() => {
                   void playFamiliarizationLabel(item.label);
                 }}
-                disabled={Boolean(playingKey)}
+                disabled={Boolean(playingFamiliarizationKey) || familiarizationGuidance.isPlaying}
               />
             ))}
           </div>
@@ -393,17 +353,10 @@ export function SequencePracticeRunner({
                 들은 단어와 같은 카드를 골라 주세요.
               </p>
             </div>
-            <SequencePlaybackButton
-              label="단어 듣기"
-              isPlaying={playingKey === recognitionItem.id}
-              onPlay={async () => {
-                setPlayingKey(recognitionItem.id);
-                try {
-                  await speakText(buildTargetText(recognitionItem));
-                } finally {
-                  setPlayingKey("");
-                }
-              }}
+            <ChildAudioGuidanceControls
+              onPlay={recognitionGuidance.playGuidance}
+              isPlaying={recognitionGuidance.isPlaying}
+              hasPlayedOnce={recognitionGuidance.hasPlayedOnce}
             />
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -414,16 +367,13 @@ export function SequencePracticeRunner({
                 imageKey={recognitionItem.choiceImageKeys?.[index]}
                 onClick={() => setRecognitionAnswer(choice)}
                 selected={recognitionAnswer === choice}
-                disabled={Boolean(playingKey)}
+                disabled={recognitionGuidance.isPlaying}
               />
             ))}
           </div>
           <button
             type="button"
-            onClick={() => {
-              setPhase("practice");
-              autoPlayedPracticeRef.current = "";
-            }}
+            onClick={() => setPhase("practice")}
             disabled={!recognitionAnswer}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
@@ -443,19 +393,10 @@ export function SequencePracticeRunner({
                 지시를 듣고 같은 순서로 빈 자리를 채워 주세요.
               </p>
             </div>
-            <SequencePlaybackButton
-              label="지시 + 단어 다시 듣기"
-              isPlaying={playingKey === `practice-${activePracticeItem.id}`}
-              onPlay={async () => {
-                setPlayingKey(`practice-${activePracticeItem.id}`);
-                try {
-                  await speakText(instructionAudio || instructionText);
-                  await wait(700);
-                  await speakText(buildTargetText(activePracticeItem));
-                } finally {
-                  setPlayingKey("");
-                }
-              }}
+            <ChildAudioGuidanceControls
+              onPlay={practiceGuidance.playGuidance}
+              isPlaying={practiceGuidance.isPlaying}
+              hasPlayedOnce={practiceGuidance.hasPlayedOnce}
             />
           </div>
 
@@ -464,6 +405,7 @@ export function SequencePracticeRunner({
               count={activePracticeItem.promptSequence?.length ?? 1}
               selected={practiceSelections[activePracticeItem.id] ?? []}
               onRemove={(index) => removeSelection(activePracticeItem, index)}
+              disabled={practiceGuidance.isPlaying}
             />
           </div>
 
@@ -475,7 +417,7 @@ export function SequencePracticeRunner({
                 imageKey={activePracticeItem.choiceImageKeys?.[index]}
                 onClick={() => appendSelection(activePracticeItem, choice)}
                 selected={(practiceSelections[activePracticeItem.id] ?? []).includes(choice)}
-                disabled={Boolean(playingKey)}
+                disabled={practiceGuidance.isPlaying}
               />
             ))}
           </div>
@@ -528,7 +470,6 @@ export function SequencePracticeRunner({
                   setRecognitionAnswer("");
                   setPracticeSelections({});
                   setRoundState("idle");
-                  autoPlayedPracticeRef.current = "";
                   router.refresh();
                 }}
                 className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
@@ -571,41 +512,19 @@ export function SequenceModuleRunner({
   const [currentSelection, setCurrentSelection] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [playingKey, setPlayingKey] = useState("");
-  const autoPlayedItemRef = useRef<string>("");
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
+  const guidance = useChildAudioGuidance({
+    instructionText,
+    instructionAudio,
+    stimulusText: currentItem ? buildTargetText(currentItem) : undefined,
+    autoplayKey: currentItem ? `${moduleCode}-${currentItem.id}` : `${moduleCode}-complete`,
+  });
 
   const currentProgress = useMemo(
     () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
     [currentIndex, items.length],
   );
-
-  useEffect(() => {
-    if (!currentItem) {
-      return;
-    }
-
-    if (autoPlayedItemRef.current === currentItem.id) {
-      return;
-    }
-
-    autoPlayedItemRef.current = currentItem.id;
-
-    void (async () => {
-      if (playingKey) {
-        return;
-      }
-      setPlayingKey(currentItem.id);
-      try {
-        await speakText(instructionAudio || instructionText);
-        await wait(700);
-        await speakText(buildTargetText(currentItem));
-      } finally {
-        setPlayingKey("");
-      }
-    })();
-  }, [currentItem, instructionAudio, instructionText, playingKey]);
 
   function appendSelection(choice: string) {
     if (!currentItem) {
@@ -761,22 +680,10 @@ export function SequenceModuleRunner({
       <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">문항 {currentIndex + 1}</p>
-          <SequencePlaybackButton
-            label="지시 + 단어 다시 듣기"
-            isPlaying={playingKey === currentItem.id}
-            onPlay={async () => {
-              if (playingKey) {
-                return;
-              }
-              setPlayingKey(currentItem.id);
-              try {
-                await speakText(instructionAudio || instructionText);
-                await wait(700);
-                await speakText(buildTargetText(currentItem));
-              } finally {
-                setPlayingKey("");
-              }
-            }}
+          <ChildAudioGuidanceControls
+            onPlay={guidance.playGuidance}
+            isPlaying={guidance.isPlaying}
+            hasPlayedOnce={guidance.hasPlayedOnce}
           />
         </div>
 
@@ -785,6 +692,7 @@ export function SequenceModuleRunner({
             count={currentItem.promptSequence?.length ?? 1}
             selected={currentSelection}
             onRemove={removeSelection}
+            disabled={guidance.isPlaying || saving}
           />
         </div>
 
@@ -796,7 +704,7 @@ export function SequenceModuleRunner({
               imageKey={currentItem.choiceImageKeys?.[index]}
               onClick={() => appendSelection(choice)}
               selected={currentSelection.includes(choice)}
-              disabled={Boolean(playingKey) || saving}
+              disabled={guidance.isPlaying || saving}
             />
           ))}
         </div>

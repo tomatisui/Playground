@@ -3,7 +3,10 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlaybackButton } from "@/components/playback-button";
+import {
+  ChildAudioGuidanceControls,
+  useChildAudioGuidance,
+} from "@/components/child-audio-guidance";
 
 type ModuleItem = {
   id: string;
@@ -18,6 +21,8 @@ type ModuleRunnerProps = {
   playbackType: "tts" | "pattern";
   title: string;
   instructions: string;
+  instructionText?: string;
+  instructionAudio?: string | null;
   items: ModuleItem[];
   initialIndex: number;
   initialResponses: string[];
@@ -31,6 +36,8 @@ export function ModuleRunner({
   playbackType,
   title,
   instructions,
+  instructionText,
+  instructionAudio,
   items,
   initialIndex,
   initialResponses,
@@ -45,6 +52,13 @@ export function ModuleRunner({
   const [errorMessage, setErrorMessage] = useState("");
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
+  const guidance = useChildAudioGuidance({
+    instructionText: instructionText ?? instructions,
+    instructionAudio,
+    stimulusText: currentItem?.prompt,
+    stimulusPlaybackType: playbackType,
+    autoplayKey: currentItem ? `${moduleCode}-${currentItem.id}` : `${moduleCode}-complete`,
+  });
 
   const currentProgress = useMemo(
     () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
@@ -190,7 +204,11 @@ export function ModuleRunner({
       <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
         <div className="flex items-center justify-between gap-3">
           <p className="text-sm font-semibold">문항 {currentIndex + 1}</p>
-          <PlaybackButton playbackType={playbackType} prompt={currentItem.prompt} />
+          <ChildAudioGuidanceControls
+            onPlay={guidance.playGuidance}
+            isPlaying={guidance.isPlaying}
+            hasPlayedOnce={guidance.hasPlayedOnce}
+          />
         </div>
 
         <div className="mt-4 grid gap-2">
@@ -199,7 +217,7 @@ export function ModuleRunner({
               key={choice}
               type="button"
               onClick={() => submitChoice(choice)}
-              disabled={saving}
+              disabled={saving || guidance.isPlaying}
               className="rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-left text-sm transition hover:border-[var(--accent-strong)] disabled:opacity-50"
             >
               {choice}
