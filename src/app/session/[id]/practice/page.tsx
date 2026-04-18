@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PrototypeBadge } from "@/components/prototype-badge";
 import { PracticeRunner } from "@/components/practice-runner";
 import { SequencePracticeRunner } from "@/components/sequence-memory-runner";
-import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
+import { getModuleDefinition } from "@/lib/module-catalog";
 import { getSessionWithDetails, touchSessionRoute } from "@/lib/session-runtime";
 import { getSessionEngineSnapshot } from "@/lib/session-runtime";
 
@@ -21,7 +20,6 @@ export default async function PracticePage({
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-          <PrototypeBadge />
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
             Practice
           </p>
@@ -58,7 +56,6 @@ export default async function PracticePage({
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-          <PrototypeBadge />
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
             Practice
           </p>
@@ -88,24 +85,9 @@ export default async function PracticePage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-        <PrototypeBadge />
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Practice
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-          {definition.moduleCode} 연습
-        </h1>
-        <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-          연습은 점수화하지 않습니다. 아이가 과제 형식을 이해하도록 도와주는
-          단계입니다.
-        </p>
-        <div className="mt-4 rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
-          콘텐츠 상태: {getContentAssetStatus(snapshot.next_module, session.ageYears)}
-        </div>
-
         {definition.implemented ? (
           (definition.practiceItems?.length ?? 0) > 0 ? (
-            <div className="mt-6">
+            <div>
               {definition.moduleCode === "M3" || definition.moduleCode === "M3-R" ? (
                 <SequencePracticeRunner
                   sessionId={session.id}

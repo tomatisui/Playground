@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { AudioCheckClient } from "@/components/audio-check-client";
-import { PrototypeBadge } from "@/components/prototype-badge";
 import { prisma } from "@/lib/prisma";
 
 export default async function AudioCheckPage({
@@ -53,11 +52,7 @@ export default async function AudioCheckPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-        <PrototypeBadge />
-        <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Audio check
-        </p>
-        <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
+        <h1 className="text-4xl font-semibold tracking-[-0.05em]">
           소리 확인
         </h1>
         <p className="mt-4 text-sm leading-7 text-[var(--muted)]">

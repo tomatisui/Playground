@@ -117,9 +117,8 @@ export function PracticeRunner({
   return (
     <div className="space-y-4">
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <p className="text-sm leading-7 text-[var(--muted)]">{instructions}</p>
-        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Practice is not scored. Repeated difficulty only adds a quality flag.
+        <p className="text-sm leading-7 text-[var(--foreground)]">
+          {instructionText ?? instructions}
         </p>
         <div className="mt-4">
           <ChildAudioGuidanceControls

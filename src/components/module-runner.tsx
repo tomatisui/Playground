@@ -7,11 +7,13 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
+import { ChildChoiceCard } from "@/components/child-choice-card";
 
 type ModuleItem = {
   id: string;
   prompt: string;
   choices: string[];
+  choiceImageKeys?: string[];
   correctAnswer: string;
 };
 
@@ -19,7 +21,6 @@ type ModuleRunnerProps = {
   sessionId: string;
   moduleCode: string;
   playbackType: "tts" | "pattern";
-  title: string;
   instructions: string;
   instructionText?: string;
   instructionAudio?: string | null;
@@ -34,7 +35,6 @@ export function ModuleRunner({
   sessionId,
   moduleCode,
   playbackType,
-  title,
   instructions,
   instructionText,
   instructionAudio,
@@ -176,14 +176,9 @@ export function ModuleRunner({
     <div className="space-y-4">
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              {title}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-              {instructions}
-            </p>
-          </div>
+          <p className="text-sm leading-7 text-[var(--foreground)]">
+            {instructionText ?? instructions}
+          </p>
           <span className="rounded-full bg-[rgba(201,111,59,0.12)] px-3 py-1 text-xs font-semibold text-[var(--accent-strong)]">
             {currentProgress}
           </span>
@@ -212,16 +207,14 @@ export function ModuleRunner({
         </div>
 
         <div className="mt-4 grid gap-2">
-          {currentItem.choices.map((choice) => (
-            <button
+          {currentItem.choices.map((choice, index) => (
+            <ChildChoiceCard
               key={choice}
-              type="button"
+              label={choice}
+              imageKey={currentItem.choiceImageKeys?.[index]}
               onClick={() => submitChoice(choice)}
               disabled={saving || guidance.isPlaying}
-              className="rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-left text-sm transition hover:border-[var(--accent-strong)] disabled:opacity-50"
-            >
-              {choice}
-            </button>
+            />
           ))}
         </div>
 

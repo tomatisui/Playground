@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { completePlaceholderModule } from "@/app/actions";
 import { ModuleRunner } from "@/components/module-runner";
-import { PrototypeBadge } from "@/components/prototype-badge";
 import { SequenceModuleRunner } from "@/components/sequence-memory-runner";
-import { getContentAssetStatus, getModuleDefinition } from "@/lib/module-catalog";
+import { getModuleDefinition } from "@/lib/module-catalog";
 import { parseResponseLog, getSessionWithDetails, getSessionEngineSnapshot, touchSessionRoute, upsertQualityFlag } from "@/lib/session-runtime";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,6 @@ export default async function ModulePage({
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-          <PrototypeBadge />
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
             Module runtime
           </p>
@@ -49,7 +47,6 @@ export default async function ModulePage({
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-          <PrototypeBadge />
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
             Module runtime
           </p>
@@ -100,7 +97,6 @@ export default async function ModulePage({
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
         <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-          <PrototypeBadge />
           <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
             Module placeholder
           </p>
@@ -134,35 +130,12 @@ export default async function ModulePage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-        <PrototypeBadge />
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              Module runtime
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-              {definition.moduleCode} {definition.title}
-            </h1>
-          </div>
-          <Link
-            href={`/session/${session.id}/report`}
-            className="rounded-full border border-[var(--line)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em]"
-          >
-            보고서 보기
-          </Link>
-        </div>
-        <div className="mt-4 rounded-[1.2rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
-          콘텐츠 상태: {getContentAssetStatus(code, session.ageYears)}
-        </div>
-
         {(definition.testItems?.length ?? 0) > 0 ? (
-          <div className="mt-6">
+          <div>
             {definition.moduleCode === "M3" || definition.moduleCode === "M3-R" ? (
               <SequenceModuleRunner
                 sessionId={session.id}
                 moduleCode={definition.moduleCode}
-                title={`${definition.moduleCode} ${definition.title}`}
-                instructions={definition.instructions ?? ""}
                 instructionText={definition.instructionText ?? definition.instructions ?? ""}
                 instructionAudio={definition.instructionAudio}
                 visibleChoiceCount={definition.visibleChoiceCount ?? 6}
@@ -177,7 +150,6 @@ export default async function ModulePage({
                 sessionId={session.id}
                 moduleCode={definition.moduleCode}
                 playbackType={definition.playbackType ?? "tts"}
-                title={`${definition.moduleCode} ${definition.title}`}
                 instructions={definition.instructions ?? ""}
                 instructionText={definition.instructionText ?? definition.instructions ?? ""}
                 instructionAudio={definition.instructionAudio}

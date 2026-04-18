@@ -20,11 +20,33 @@ Guardian-only screens such as consent, child info entry, and admin do not requir
 
 Each child-facing screen should provide the same basic pattern:
 
-1. auto-attempt the spoken instruction on first entry
-2. show a large `설명 듣기` button when the child needs to start or replay the first instruction
-3. keep a persistent `다시 듣기` control visible during the task
+1. wait briefly on first entry so the child can orient to the screen
+2. auto-attempt the spoken instruction after that short pause
+3. show one clear child-facing playback control only
+
+The shared child playback policy is:
+
+- before the first completed playback, show a single large `설명 듣기` button
+- during playback, show a single locked control such as `듣는 중...`
+- after playback, show a single replay control such as `다시 듣기`
+- do not show duplicated child-facing playback buttons at the same time
 
 Instructions should usually be one short sentence. They should stay child-friendly, non-diagnostic, and free of evaluative wording.
+
+## Child-View Simplification
+
+Child-facing task screens should keep the visible surface simple. The main task area should show only:
+
+- a short Korean instruction
+- one clear listen or replay control
+- the task UI itself
+- a primary action button when the step needs one
+
+Internal prototype labels, English module metadata, fallback notices, and debug-oriented copy should stay out of the main child-facing task surface. Those details may remain in admin or internal tooling.
+
+## Image-Supported Choices
+
+For preschool users who may not read fluently, answer choices should use image-supported cards whenever the task depends on choosing among words or items. If final local images are not ready yet, the runtime should show a child-friendly placeholder visual tile together with the Korean label. Internal placeholder codes or asset abbreviations must not be shown to the child.
 
 ## Instruction Before Stimulus
 
@@ -35,6 +57,10 @@ For any task stage that includes a target sound or spoken stimulus, playback mus
 3. task stimulus
 
 The prototype currently uses a short delay of about 700 ms. Stimulus playback must not begin before the instruction finishes, and repeated taps should not create overlapping playback.
+
+## First-Entry Orienting Delay
+
+On first entry to a child task screen, the prototype should leave a short orienting gap before the first autoplay attempt. The current policy target is about 800-1200 ms. This gives the child a moment to look at the screen before hearing the spoken cue while still preserving a quick, guided flow.
 
 ## Config and Fallback Policy
 

@@ -7,6 +7,7 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
+import { ChildChoiceCard } from "@/components/child-choice-card";
 import { speakText } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
@@ -41,8 +42,6 @@ type SequencePracticeRunnerProps = {
 type SequenceModuleRunnerProps = {
   sessionId: string;
   moduleCode: string;
-  title: string;
-  instructions: string;
   instructionText: string;
   instructionAudio?: string | null;
   visibleChoiceCount: number;
@@ -59,43 +58,6 @@ function buildTargetText(item: SequenceItem) {
   }
 
   return item.prompt;
-}
-
-function SequenceChoiceCard({
-  label,
-  imageKey,
-  onClick,
-  disabled,
-  selected,
-}: {
-  label: string;
-  imageKey?: string;
-  onClick: () => void;
-  disabled?: boolean;
-  selected?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={`rounded-[1rem] border px-3 py-3 text-left transition disabled:opacity-50 ${
-        selected
-          ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
-          : "border-[var(--line)] bg-white"
-      }`}
-    >
-      <div className="flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-[0.9rem] bg-[var(--card-strong)] text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--muted)]">
-          {imageKey ? imageKey.slice(0, 3) : "IMG"}
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-[var(--foreground)]">{label}</p>
-          <p className="text-xs text-[var(--muted)]">image + text choice</p>
-        </div>
-      </div>
-    </button>
-  );
 }
 
 function AnswerSlots({
@@ -308,10 +270,7 @@ export function SequencePracticeRunner({
   return (
     <div className="space-y-4">
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <p className="text-sm leading-7 text-[var(--muted)]">{instructionText}</p>
-        <p className="mt-3 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-          Visible choices: {visibleChoiceCount}. Familiarization and practice are internal prototype training only.
-        </p>
+        <p className="text-sm leading-7 text-[var(--foreground)]">{instructionText}</p>
       </div>
 
       {errorMessage ? (
@@ -337,7 +296,7 @@ export function SequencePracticeRunner({
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {familiarizationItems.map((item) => (
-              <SequenceChoiceCard
+              <ChildChoiceCard
                 key={item.label}
                 label={item.label}
                 imageKey={item.imageKey}
@@ -375,7 +334,7 @@ export function SequencePracticeRunner({
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {recognitionItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
-              <SequenceChoiceCard
+              <ChildChoiceCard
                 key={choice}
                 label={choice}
                 imageKey={recognitionItem.choiceImageKeys?.[index]}
@@ -459,7 +418,7 @@ export function SequencePracticeRunner({
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
             {activePracticeItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
-              <SequenceChoiceCard
+              <ChildChoiceCard
                 key={choice}
                 label={choice}
                 imageKey={activePracticeItem.choiceImageKeys?.[index]}
@@ -550,8 +509,6 @@ export function SequencePracticeRunner({
 export function SequenceModuleRunner({
   sessionId,
   moduleCode,
-  title,
-  instructions,
   instructionText,
   instructionAudio,
   visibleChoiceCount,
@@ -707,15 +664,7 @@ export function SequenceModuleRunner({
     <div className="space-y-4">
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
         <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              {title}
-            </p>
-            <p className="mt-2 text-sm leading-7 text-[var(--muted)]">{instructions}</p>
-            <p className="mt-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              Visible choices: {visibleChoiceCount}
-            </p>
-          </div>
+          <p className="text-sm leading-7 text-[var(--foreground)]">{instructionText}</p>
           <span className="rounded-full bg-[rgba(201,111,59,0.12)] px-3 py-1 text-xs font-semibold text-[var(--accent-strong)]">
             {currentProgress}
           </span>
@@ -754,7 +703,7 @@ export function SequenceModuleRunner({
 
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           {currentItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
-            <SequenceChoiceCard
+            <ChildChoiceCard
               key={choice}
               label={choice}
               imageKey={currentItem.choiceImageKeys?.[index]}
