@@ -154,6 +154,7 @@ export function SequencePracticeRunner({
   );
   const [recognitionAnswer, setRecognitionAnswer] = useState("");
   const [practiceSelections, setPracticeSelections] = useState<Record<string, string[]>>({});
+  const [practiceStepIndex, setPracticeStepIndex] = useState(0);
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
@@ -165,15 +166,7 @@ export function SequencePracticeRunner({
     autoplayKey: `${moduleCode}-familiarization`,
   });
 
-  const currentPracticeIndex = useMemo(() => {
-    return practiceItems.findIndex((item) => {
-      const selected = practiceSelections[item.id] ?? [];
-      return selected.length < (item.promptSequence?.length ?? 1);
-    });
-  }, [practiceItems, practiceSelections]);
-
-  const activePracticeItem =
-    currentPracticeIndex >= 0 ? practiceItems[currentPracticeIndex] : practiceItems.at(-1);
+  const activePracticeItem = practiceItems[practiceStepIndex] ?? null;
   const recognitionItem = recognitionItems[0];
   const recognitionGuidance = useChildAudioGuidance({
     instructionText: "들은 단어와 같은 카드를 골라요.",
@@ -284,12 +277,33 @@ export function SequencePracticeRunner({
       setPhase("done");
     }
   }
-  const practiceReady =
-    recognitionAnswer &&
-    practiceItems.every(
-      (item) =>
-        (practiceSelections[item.id] ?? []).length === (item.promptSequence?.length ?? 1),
-    );
+  const currentPracticeReady = activePracticeItem
+    ? (practiceSelections[activePracticeItem.id] ?? []).length ===
+      (activePracticeItem.promptSequence?.length ?? 1)
+    : false;
+  const practiceStepCompleted = activePracticeItem
+    ? (practiceSelections[activePracticeItem.id] ?? []).length ===
+      (activePracticeItem.promptSequence?.length ?? 1)
+    : false;
+  const allPracticeCompleted = practiceItems.every(
+    (item) => (practiceSelections[item.id] ?? []).length === (item.promptSequence?.length ?? 1),
+  );
+  const readyForTest = phase === "done" && roundState === "passed";
+  const hasPracticeStateMismatch =
+    phase === "practice" && (!activePracticeItem || practiceStepIndex >= practiceItems.length);
+
+  function submitPracticeStep() {
+    if (!activePracticeItem || !currentPracticeReady || submitting) {
+      return;
+    }
+
+    if (practiceStepIndex < practiceItems.length - 1) {
+      setPracticeStepIndex((value) => value + 1);
+      return;
+    }
+
+    void submitPracticeRound();
+  }
 
   return (
     <div className="space-y-4">
@@ -373,7 +387,10 @@ export function SequencePracticeRunner({
           </div>
           <button
             type="button"
-            onClick={() => setPhase("practice")}
+            onClick={() => {
+              setPracticeStepIndex(0);
+              setPhase("practice");
+            }}
             disabled={!recognitionAnswer}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
@@ -382,12 +399,43 @@ export function SequencePracticeRunner({
         </article>
       ) : null}
 
+      {hasPracticeStateMismatch ? (
+        <article className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+          연습 단계 상태를 다시 확인하고 있습니다. 아래 버튼으로 안전하게 이어갈 수 있습니다.
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            {allPracticeCompleted ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setPhase("done");
+                  setRoundState("passed");
+                }}
+                className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white"
+              >
+                본검사 시작 화면으로 복구
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setPracticeStepIndex(0);
+                  setPhase("practice");
+                }}
+                className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
+              >
+                연습 처음부터 다시 확인
+              </button>
+            )}
+          </div>
+        </article>
+      ) : null}
+
       {phase === "practice" && activePracticeItem ? (
         <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-semibold">
-                연습 {currentPracticeIndex + 1}
+                연습 {practiceStepIndex + 1}
               </p>
               <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
                 지시를 듣고 같은 순서로 빈 자리를 채워 주세요.
@@ -422,27 +470,25 @@ export function SequencePracticeRunner({
             ))}
           </div>
 
-          {currentPracticeIndex === practiceItems.length - 1 ? (
-            <button
-              type="button"
-              onClick={() => {
-                void submitPracticeRound();
-              }}
-              disabled={!practiceReady || submitting}
-              className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
-            >
-              {submitting ? "저장 중..." : "연습 결과 저장"}
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setPracticeSelections((value) => ({ ...value }))}
-              disabled
-              className="mt-4 w-full rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold text-[var(--muted)]"
-            >
-              다음 연습은 현재 빈 자리가 채워지면 자동으로 이어집니다
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={submitPracticeStep}
+            disabled={!currentPracticeReady || submitting || practiceGuidance.isPlaying}
+            className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {submitting
+              ? "저장 중..."
+              : practiceStepIndex === practiceItems.length - 1
+                ? "선택 완료"
+                : "선택 완료"}
+          </button>
+          <p className="mt-3 text-xs leading-6 text-[var(--muted)]">
+            {practiceStepCompleted
+              ? practiceStepIndex === practiceItems.length - 1
+                ? "마지막 연습 선택이 준비되었습니다. 선택 완료를 누르면 연습이 끝납니다."
+                : "현재 연습 선택이 준비되었습니다. 선택 완료를 누르면 다음 연습으로 이동합니다."
+              : "빈 자리를 모두 채우면 선택 완료 버튼이 활성화됩니다."}
+          </p>
         </article>
       ) : null}
 
@@ -457,7 +503,7 @@ export function SequencePracticeRunner({
             </div>
           ) : (
             <div className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900">
-              연습 단계가 끝났습니다. 본 과제로 이동하세요.
+              연습 단계가 끝났습니다. 아래 버튼을 눌러 본검사를 시작하세요.
             </div>
           )}
 
@@ -469,6 +515,7 @@ export function SequencePracticeRunner({
                   setPhase("recognition");
                   setRecognitionAnswer("");
                   setPracticeSelections({});
+                  setPracticeStepIndex(0);
                   setRoundState("idle");
                   router.refresh();
                 }}
@@ -480,11 +527,20 @@ export function SequencePracticeRunner({
 
             <Link
               href={moduleHref}
-              className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-center text-sm font-semibold text-white"
+              className={`flex-1 rounded-[1.2rem] px-4 py-3 text-center text-sm font-semibold text-white ${
+                readyForTest || practiceFailures >= 2
+                  ? "bg-[var(--accent-strong)]"
+                  : "bg-slate-300"
+              }`}
             >
-              본 과제로 이동
+              본검사 시작
             </Link>
           </div>
+          {!readyForTest && roundState === "passed" ? (
+            <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+              연습은 완료되었지만 본검사 진입 상태를 다시 확인하고 있습니다. 버튼이 반응하지 않으면 페이지를 새로고침한 뒤 다시 시도해 주세요.
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>

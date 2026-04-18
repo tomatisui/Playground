@@ -37,6 +37,9 @@ This flow is internal, prototype-safe, and non-diagnostic.
 - Show `1` answer slot
 - Show `6` visible image+text choices
 - Allow filling the slot by tapping a choice
+- `선택 완료` stays disabled until the required slot is filled
+- Filling a slot does not auto-advance the child to the next step
+- If the slot is cleared again, `선택 완료` becomes disabled again
 
 ## Practice stage 2
 
@@ -47,10 +50,15 @@ This flow is internal, prototype-safe, and non-diagnostic.
 - Show `6` visible image+text choices
 - Allow filling the slots in order
 - Allow removing a filled item by tapping the slot
+- `선택 완료` stays disabled until both slots are filled
+- Practice does not auto-advance when the slots become full
 
 ## Runtime notes
 
 - Practice remains unscored
+- Practice requires an explicit `선택 완료` press for each step
+- After the final practice step is submitted, `본검사 시작` becomes enabled
+- The child or guardian must explicitly press `본검사 시작` to enter the test stage
 - Playback order is always:
   - instruction
   - short delay
