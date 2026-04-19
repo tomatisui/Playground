@@ -48,7 +48,6 @@ type SequenceModuleRunnerProps = {
 };
 
 type SequenceTone = "practice" | "test";
-
 const SEQUENCE_DELAY_MS = 1000;
 
 function getToneClasses(seed: string) {
@@ -108,11 +107,34 @@ function getSequencePoolFromItems(items: SequenceItem[], fallbackPool: TrainingP
   return [...entries.values()];
 }
 
+function buildRuntimeAttemptPlan(items: SequenceItem[]) {
+  const groups = new Map<number, SequenceItem[]>();
+
+  for (const item of items) {
+    const level = item.promptSequence?.length ?? 1;
+    const current = groups.get(level) ?? [];
+    groups.set(level, [...current, item]);
+  }
+
+  return [...groups.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .flatMap(([level, levelItems]) => {
+      const attempts = levelItems.length >= 2 ? levelItems.slice(0, 2) : [levelItems[0], levelItems[0]];
+
+      return attempts.map((item, index) => ({
+        item,
+        runtimeId: `${item.id}-level-${level}-attempt-${index + 1}`,
+        level,
+        levelAttempt: (index === 0 ? 1 : 2) as 1 | 2,
+      }));
+    });
+}
+
 async function playSequencePrompt(moduleCode: string, item: SequenceItem) {
   const instructionResult = await speakText(getSequenceInstructionAudioText(moduleCode));
 
   if (instructionResult.status !== "ended") {
-    return { consumed: false };
+    return { consumed: false, completed: false };
   }
 
   const sequence =
@@ -131,11 +153,11 @@ async function playSequencePrompt(moduleCode: string, item: SequenceItem) {
     }
 
     if (spokenResult.status !== "ended") {
-      return { consumed };
+      return { consumed, completed: false };
     }
   }
 
-  return { consumed };
+  return { consumed, completed: true };
 }
 
 function SequenceCard({
@@ -156,8 +178,8 @@ function SequenceCard({
     "flex min-h-[5.5rem] w-full items-center gap-3 rounded-[1.1rem] px-4 py-4 text-left transition";
   const toneClassesByMode =
     tone === "test"
-      ? "border border-[rgba(140,77,45,0.26)] bg-white/95"
-      : "border border-[rgba(201,111,59,0.22)] bg-white/95";
+      ? "border border-[rgba(58,111,168,0.36)] bg-[rgba(245,250,255,0.98)]"
+      : "border border-[rgba(201,111,59,0.3)] bg-[rgba(255,250,245,0.98)]";
   const content = (
     <>
       <div
@@ -227,8 +249,8 @@ function AnswerSlots({
               <div
                 className={`flex min-h-[5.5rem] w-full items-center rounded-[1.1rem] border-2 border-dashed px-4 py-4 text-left text-base font-semibold ${
                   tone === "test"
-                    ? "border-[rgba(140,77,45,0.5)] bg-[rgba(140,77,45,0.08)] text-[var(--foreground)]"
-                    : "border-[rgba(201,111,59,0.44)] bg-[rgba(201,111,59,0.06)] text-[var(--foreground)]"
+                    ? "border-[rgba(58,111,168,0.55)] bg-[rgba(58,111,168,0.1)] text-[var(--foreground)]"
+                    : "border-[rgba(201,111,59,0.5)] bg-[rgba(201,111,59,0.08)] text-[var(--foreground)]"
                 }`}
               >
                 빈 자리 {index + 1}
@@ -256,23 +278,30 @@ function ChoiceGrid({
   tone: SequenceTone;
   matched?: string[];
 }) {
-  const visibleChoices =
-    matched.length > 0 ? pool : pool.filter((choice) => !selected.includes(choice.label));
-
   return (
     <div className="mt-4 flex flex-wrap gap-3">
-      {visibleChoices.map((choice) => (
+      {pool.map((choice) => (
         <div
           key={choice.label}
           className="min-w-[7.25rem] flex-1 basis-[7.25rem] sm:min-w-[8rem] sm:basis-[8rem]"
         >
-          <SequenceCard
-            label={choice.label}
-            imageKey={choice.imageKey}
-            onClick={() => onSelect(choice.label)}
-            disabled={disabled || matched.includes(choice.label)}
-            tone={tone}
-          />
+          {selected.includes(choice.label) && matched.length === 0 ? (
+            <div
+              className={`min-h-[5.5rem] w-full rounded-[1.1rem] border-2 border-dashed ${
+                tone === "test"
+                  ? "border-[rgba(58,111,168,0.34)] bg-[rgba(58,111,168,0.06)]"
+                  : "border-[rgba(201,111,59,0.3)] bg-[rgba(201,111,59,0.05)]"
+              }`}
+            />
+          ) : (
+            <SequenceCard
+              label={choice.label}
+              imageKey={choice.imageKey}
+              onClick={() => onSelect(choice.label)}
+              disabled={disabled || matched.includes(choice.label)}
+              tone={tone}
+            />
+          )}
         </div>
       ))}
     </div>
@@ -304,6 +333,7 @@ export function SequencePracticeRunner({
   const [practiceStepIndex, setPracticeStepIndex] = useState(0);
   const [practicePlayingItemId, setPracticePlayingItemId] = useState("");
   const [practicePlayedItemIds, setPracticePlayedItemIds] = useState<string[]>([]);
+  const [practiceRevealedItemIds, setPracticeRevealedItemIds] = useState<string[]>([]);
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
@@ -322,6 +352,9 @@ export function SequencePracticeRunner({
   const practiceHasPlayed = activePracticeItem
     ? practicePlayedItemIds.includes(activePracticeItem.id)
     : false;
+  const practiceChoicesVisible = activePracticeItem
+    ? practiceRevealedItemIds.includes(activePracticeItem.id)
+    : false;
   const practiceInstructionLine =
     moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
   const testInstructionLine = getChildInstructionLine(moduleCode);
@@ -332,6 +365,7 @@ export function SequencePracticeRunner({
     setPracticePlayingItemId("");
     if (clearPlayed) {
       setPracticePlayedItemIds([]);
+      setPracticeRevealedItemIds([]);
     }
   }
 
@@ -442,6 +476,11 @@ export function SequencePracticeRunner({
 
       if (result.consumed) {
         setPracticePlayedItemIds((value) =>
+          value.includes(activePracticeItem.id) ? value : [...value, activePracticeItem.id],
+        );
+      }
+      if (result.completed) {
+        setPracticeRevealedItemIds((value) =>
           value.includes(activePracticeItem.id) ? value : [...value, activePracticeItem.id],
         );
       }
@@ -718,13 +757,19 @@ export function SequencePracticeRunner({
             tone="practice"
           />
 
-          <ChoiceGrid
-            pool={familiarizationItems}
-            selected={practiceSelections[activePracticeItem.id] ?? []}
-            onSelect={(label) => appendSelection(activePracticeItem, label)}
-            disabled={practicePlaying}
-            tone="practice"
-          />
+          {practiceChoicesVisible ? (
+            <ChoiceGrid
+              pool={familiarizationItems}
+              selected={practiceSelections[activePracticeItem.id] ?? []}
+              onSelect={(label) => appendSelection(activePracticeItem, label)}
+              disabled={practicePlaying}
+              tone="practice"
+            />
+          ) : (
+            <div className="mt-4 rounded-[1.2rem] border border-dashed border-[rgba(201,111,59,0.34)] bg-[rgba(201,111,59,0.05)] px-4 py-5 text-sm leading-7 text-[var(--muted)]">
+              단어 듣기를 마치면 고를 그림이 나타나요.
+            </div>
+          )}
 
           <button
             type="button"
@@ -818,15 +863,19 @@ export function SequenceModuleRunner({
   nextHref,
 }: SequenceModuleRunnerProps) {
   const router = useRouter();
-  const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [responses, setResponses] = useState(initialResponses);
+  const runtimePlan = useMemo(() => buildRuntimeAttemptPlan(items), [items]);
+  const normalizedInitialIndex = Math.min(initialIndex, Math.max(runtimePlan.length - 1, 0));
+  const [currentIndex, setCurrentIndex] = useState(normalizedInitialIndex);
+  const [responses, setResponses] = useState(() => runtimePlan.map((_, index) => initialResponses[index] ?? ""));
   const [assistCount] = useState(initialAssistCount);
   const [currentSelection, setCurrentSelection] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [playingItemId, setPlayingItemId] = useState("");
   const [playedItemIds, setPlayedItemIds] = useState<string[]>([]);
-  const currentItem = items[currentIndex];
+  const [revealedItemIds, setRevealedItemIds] = useState<string[]>([]);
+  const currentAttempt = runtimePlan[currentIndex];
+  const currentItem = currentAttempt?.item;
   const isResume = initialIndex > 0 || initialResponses.length > 0;
   const testInstructionLine = getChildInstructionLine(moduleCode);
   const testGuidanceLines = getSequenceGuidanceLines(moduleCode);
@@ -836,19 +885,31 @@ export function SequenceModuleRunner({
   );
 
   const currentProgress = useMemo(
-    () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
-    [currentIndex, items.length],
+    () => `${Math.min(currentIndex + 1, runtimePlan.length)}/${runtimePlan.length}`,
+    [currentIndex, runtimePlan.length],
   );
-  const testPlaying = currentItem ? playingItemId === currentItem.id : false;
-  const testHasPlayedOnce = currentItem ? playedItemIds.includes(currentItem.id) : false;
+  const currentSlotCount = currentItem?.promptSequence?.length ?? 1;
+  const testPlaying = currentAttempt ? playingItemId === currentAttempt.runtimeId : false;
+  const testHasPlayedOnce = currentAttempt ? playedItemIds.includes(currentAttempt.runtimeId) : false;
+  const testChoicesVisible = currentAttempt ? revealedItemIds.includes(currentAttempt.runtimeId) : false;
+  const currentLevelAttempts = currentAttempt
+    ? runtimePlan.filter((attempt) => attempt.level === currentAttempt.level)
+    : [];
+  const currentLevelStartIndex = currentLevelAttempts.length > 0
+    ? runtimePlan.findIndex((attempt) => attempt.runtimeId === currentLevelAttempts[0]?.runtimeId)
+    : currentIndex;
 
   function appendSelection(choice: string) {
     if (!currentItem) {
       return;
     }
 
-    const slotCount = currentItem.promptSequence?.length ?? 1;
-    if (currentSelection.includes(choice) || currentSelection.length >= slotCount) {
+    if (currentSelection.length > currentSlotCount) {
+      setCurrentSelection((value) => value.slice(0, currentSlotCount));
+      return;
+    }
+
+    if (currentSelection.includes(choice) || currentSelection.length >= currentSlotCount) {
       return;
     }
 
@@ -860,18 +921,23 @@ export function SequenceModuleRunner({
   }
 
   async function playTestSequence() {
-    if (!currentItem || testPlaying || testHasPlayedOnce) {
+    if (!currentItem || !currentAttempt || testPlaying || testHasPlayedOnce) {
       return;
     }
 
-    setPlayingItemId(currentItem.id);
+    setPlayingItemId(currentAttempt.runtimeId);
 
     try {
       const result = await playSequencePrompt(moduleCode, currentItem);
 
       if (result.consumed) {
         setPlayedItemIds((value) =>
-          value.includes(currentItem.id) ? value : [...value, currentItem.id],
+          value.includes(currentAttempt.runtimeId) ? value : [...value, currentAttempt.runtimeId],
+        );
+      }
+      if (result.completed) {
+        setRevealedItemIds((value) =>
+          value.includes(currentAttempt.runtimeId) ? value : [...value, currentAttempt.runtimeId],
         );
       }
     } finally {
@@ -884,8 +950,7 @@ export function SequenceModuleRunner({
       return;
     }
 
-    const slotCount = currentItem.promptSequence?.length ?? 1;
-    if (currentSelection.length !== slotCount) {
+    if (currentSelection.length !== currentSlotCount) {
       return;
     }
 
@@ -895,31 +960,64 @@ export function SequenceModuleRunner({
     updatedResponses[currentIndex] = currentSelection.join(", ");
 
     const correctCount = updatedResponses.filter(
-      (response, index) => response === items[index]?.correctAnswer,
+      (response, index) => response === runtimePlan[index]?.item.correctAnswer,
     ).length;
+
+    const currentLevelResponses = currentLevelAttempts.map((attempt) => {
+      const responseIndex = runtimePlan.findIndex(
+        (planAttempt) => planAttempt.runtimeId === attempt.runtimeId,
+      );
+
+      return {
+        attempt,
+        response: updatedResponses[responseIndex] ?? "",
+        correct: (updatedResponses[responseIndex] ?? "") === attempt.item.correctAnswer,
+      };
+    });
+    const completedLevelResponses = currentLevelResponses.filter((entry) => entry.response);
+    const hasSecondAttemptAtLevel = currentLevelAttempts.length >= 2;
+
+    if (!hasSecondAttemptAtLevel) {
+      setSaving(false);
+      setErrorMessage("현재 단계 구성에 문제가 있어 두 번째 문항을 준비하지 못했습니다.");
+      return;
+    }
 
     const payloadBase = {
       correctCount,
-      itemCount: items.length,
+      itemCount: runtimePlan.length,
       responseLog: JSON.stringify(updatedResponses),
       caregiverAssistCount: assistCount,
     };
 
-    const isLast = currentIndex === items.length - 1;
+    const bothIncorrectAtLevel =
+      completedLevelResponses.length === 2 &&
+      completedLevelResponses.every((entry) => !entry.correct);
+    const levelFullyAttempted = completedLevelResponses.length === 2;
+    const currentLevelEndsModule =
+      currentLevelAttempts[currentLevelAttempts.length - 1]?.runtimeId ===
+      runtimePlan[runtimePlan.length - 1]?.runtimeId;
+    const shouldComplete =
+      bothIncorrectAtLevel || (levelFullyAttempted && currentLevelEndsModule);
+
+    const nextIndex = levelFullyAttempted
+      ? currentLevelStartIndex + currentLevelAttempts.length
+      : currentIndex + 1;
+
     const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify(
-        isLast
+        shouldComplete
           ? {
               type: "complete",
               ...payloadBase,
             }
           : {
               type: "progress",
-              lastItemIndex: currentIndex + 1,
+              lastItemIndex: nextIndex,
               ...payloadBase,
             },
       ),
@@ -931,7 +1029,7 @@ export function SequenceModuleRunner({
       return;
     }
 
-    if (isLast) {
+    if (shouldComplete) {
       router.push(nextHref);
       router.refresh();
       return;
@@ -939,7 +1037,7 @@ export function SequenceModuleRunner({
 
     setResponses(updatedResponses);
     setCurrentSelection([]);
-    setCurrentIndex((value) => value + 1);
+    setCurrentIndex(nextIndex);
     setSaving(false);
     router.refresh();
   }
@@ -969,6 +1067,7 @@ export function SequenceModuleRunner({
         instructionLine={testInstructionLine}
         progressLabel={currentProgress}
         emphasis="strong"
+        tone="cool"
       />
       {isResume ? (
         <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/85 p-4 text-sm leading-6 text-[var(--accent-strong)]">
@@ -982,7 +1081,7 @@ export function SequenceModuleRunner({
         </div>
       ) : null}
 
-      <article className="rounded-[1.4rem] border border-[rgba(140,77,45,0.28)] bg-[rgba(252,246,240,0.98)] p-4">
+      <article className="rounded-[1.4rem] border border-[rgba(58,111,168,0.42)] bg-[rgba(240,248,255,0.98)] p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="text-sm font-semibold text-[var(--accent-strong)]">문항 {currentIndex + 1}</p>
@@ -1009,7 +1108,7 @@ export function SequenceModuleRunner({
 
         <div className="mt-4">
           <AnswerSlots
-            count={currentItem.promptSequence?.length ?? 1}
+            count={currentSlotCount}
             pool={choicePool}
             selected={currentSelection}
             onRemove={removeSelection}
@@ -1018,13 +1117,19 @@ export function SequenceModuleRunner({
           />
         </div>
 
-        <ChoiceGrid
-          pool={choicePool}
-          selected={currentSelection}
-          onSelect={appendSelection}
-          disabled={testPlaying || saving}
-          tone="test"
-        />
+        {testChoicesVisible ? (
+          <ChoiceGrid
+            pool={choicePool}
+            selected={currentSelection}
+            onSelect={appendSelection}
+            disabled={testPlaying || saving}
+            tone="test"
+          />
+        ) : (
+          <div className="mt-4 rounded-[1.2rem] border border-dashed border-[rgba(58,111,168,0.38)] bg-[rgba(58,111,168,0.06)] px-4 py-5 text-sm leading-7 text-[var(--muted)]">
+            단어 듣기를 마치면 고를 그림이 나타나요.
+          </div>
+        )}
 
         <div className="mt-4">
           <button
@@ -1032,9 +1137,7 @@ export function SequenceModuleRunner({
             onClick={() => {
               void submitCurrentAnswer();
             }}
-            disabled={
-              saving || currentSelection.length !== (currentItem.promptSequence?.length ?? 1)
-            }
+            disabled={saving || currentSelection.length !== currentSlotCount}
             className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {saving ? "저장 중..." : "선택 완료"}
