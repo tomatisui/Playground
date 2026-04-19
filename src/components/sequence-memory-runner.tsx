@@ -10,7 +10,7 @@ import {
 import { ChildChoiceCard } from "@/components/child-choice-card";
 import { ChildStageHeader } from "@/components/child-stage-header";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
-import { speakText } from "@/lib/audio-playback";
+import { playFeedbackTone, speakText } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
   label: string;
@@ -106,7 +106,6 @@ export function SequencePracticeRunner({
   visibleChoiceCount,
   trainingMasteryThreshold,
   familiarizationItems,
-  recognitionItems,
   practiceItems,
   initialPracticeRuns,
   initialPracticeFailures,
@@ -116,7 +115,13 @@ export function SequencePracticeRunner({
   const [phase, setPhase] = useState<"familiarization" | "recognition" | "practice" | "done">(
     "familiarization",
   );
-  const [recognitionAnswer, setRecognitionAnswer] = useState("");
+  const [recognitionMatched, setRecognitionMatched] = useState<string[]>([]);
+  const [recognitionWrongCount, setRecognitionWrongCount] = useState(0);
+  const [recognitionCursor, setRecognitionCursor] = useState(0);
+  const [recognitionCurrentTarget, setRecognitionCurrentTarget] = useState("");
+  const [recognitionPlaying, setRecognitionPlaying] = useState(false);
+  const [recognitionHasPlayed, setRecognitionHasPlayed] = useState(false);
+  const [recognitionSkipped, setRecognitionSkipped] = useState(false);
   const [practiceSelections, setPracticeSelections] = useState<Record<string, string[]>>({});
   const [practiceStepIndex, setPracticeStepIndex] = useState(0);
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
@@ -131,12 +136,6 @@ export function SequencePracticeRunner({
   });
 
   const activePracticeItem = practiceItems[practiceStepIndex] ?? null;
-  const recognitionItem = recognitionItems[0];
-  const recognitionGuidance = useChildAudioGuidance({
-    instructionText: "들은 단어와 같은 카드를 골라요.",
-    stimulusText: recognitionItem ? buildTargetText(recognitionItem) : undefined,
-    autoplayKey: recognitionItem ? `${moduleCode}-${recognitionItem.id}` : `${moduleCode}-recognition`,
-  });
   const practiceGuidance = useChildAudioGuidance({
     instructionText,
     instructionAudio,
@@ -155,6 +154,65 @@ export function SequencePracticeRunner({
       await speakText(label);
     } finally {
       setPlayingFamiliarizationKey("");
+    }
+  }
+
+  function getNextRecognitionTarget() {
+    const remaining = familiarizationItems.filter((item) => !recognitionMatched.includes(item.label));
+
+    if (remaining.length === 0) {
+      return "";
+    }
+
+    const nextTarget = remaining[recognitionCursor % remaining.length];
+    setRecognitionCursor((value) => value + 1);
+    return nextTarget?.label ?? "";
+  }
+
+  async function playRecognitionWord() {
+    if (recognitionPlaying) {
+      return;
+    }
+
+    const nextTarget = getNextRecognitionTarget();
+
+    if (!nextTarget) {
+      setRecognitionCurrentTarget("");
+      return;
+    }
+
+    setRecognitionPlaying(true);
+    setRecognitionHasPlayed(true);
+    setRecognitionCurrentTarget(nextTarget);
+
+    try {
+      await speakText(nextTarget);
+    } finally {
+      setRecognitionPlaying(false);
+    }
+  }
+
+  async function handleRecognitionChoice(choice: string) {
+    if (!recognitionCurrentTarget || recognitionPlaying || recognitionSkipped) {
+      return;
+    }
+
+    if (choice === recognitionCurrentTarget) {
+      setRecognitionMatched((value) =>
+        value.includes(choice) ? value : [...value, choice],
+      );
+      setRecognitionCurrentTarget("");
+      await playFeedbackTone("correct");
+      return;
+    }
+
+    const nextWrongCount = recognitionWrongCount + 1;
+    setRecognitionWrongCount(nextWrongCount);
+    await playFeedbackTone("incorrect");
+
+    if (nextWrongCount >= 7) {
+      setRecognitionSkipped(true);
+      setRecognitionCurrentTarget("");
     }
   }
 
@@ -181,7 +239,7 @@ export function SequencePracticeRunner({
   }
 
   async function submitPracticeRound() {
-    if (!recognitionItems[0] || !practiceItems.every((item) => {
+    if (!practiceItems.every((item) => {
       const selected = practiceSelections[item.id] ?? [];
       return selected.length === (item.promptSequence?.length ?? 1);
     })) {
@@ -191,12 +249,12 @@ export function SequencePracticeRunner({
     setSubmitting(true);
     setErrorMessage("");
 
-    const recognitionCorrect = recognitionAnswer === recognitionItems[0].correctAnswer ? 1 : 0;
+    const recognitionCorrect = recognitionMatched.length;
     const practiceCorrect = practiceItems.filter((item) => {
       const selected = practiceSelections[item.id] ?? [];
       return selected.join(", ") === item.correctAnswer;
     }).length;
-    const total = recognitionItems.length + practiceItems.length;
+    const total = familiarizationItems.length + practiceItems.length;
     const mastery = total > 0 ? (recognitionCorrect + practiceCorrect) / total : 0;
     const passed = mastery >= trainingMasteryThreshold;
     const nextRuns = practiceRuns + 1;
@@ -235,7 +293,13 @@ export function SequencePracticeRunner({
 
     if (nextFailures < 2) {
       setPhase("recognition");
-      setRecognitionAnswer("");
+      setRecognitionMatched([]);
+      setRecognitionWrongCount(0);
+      setRecognitionCursor(0);
+      setRecognitionCurrentTarget("");
+      setRecognitionPlaying(false);
+      setRecognitionHasPlayed(false);
+      setRecognitionSkipped(false);
       setPracticeSelections({});
     } else {
       setPhase("done");
@@ -258,6 +322,7 @@ export function SequencePracticeRunner({
   const practiceInstructionLine =
     moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
   const testInstructionLine = getChildInstructionLine(moduleCode);
+  const allRecognitionMatched = recognitionMatched.length === familiarizationItems.length;
 
   function submitPracticeStep() {
     if (!activePracticeItem || !currentPracticeReady || submitting) {
@@ -288,10 +353,7 @@ export function SequencePracticeRunner({
           />
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm leading-7 text-[var(--foreground)]">
-                그림을 누르면 말이 나와요
-              </p>
-              <p className="mt-2 text-xs leading-6 text-[var(--muted)]">
+              <p className="text-sm leading-7 text-[var(--muted)]">
                 검사에 나오는 단어를 먼저 익히는 단계예요
               </p>
             </div>
@@ -326,41 +388,62 @@ export function SequencePracticeRunner({
         </article>
       ) : null}
 
-      {phase === "recognition" && recognitionItem ? (
+      {phase === "recognition" ? (
         <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
           <ChildStageHeader
-            stageLabel="연습"
+            stageLabel="사전 학습 확인"
             instructionLine="말을 듣고 같은 그림을 골라요"
           />
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm leading-7 text-[var(--muted)]">
-              들은 말과 같은 그림을 골라요.
-            </p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
+              <p>1)단어 듣기 버튼을 누르면 말이 나옵니다.</p>
+              <p>2)누를 때마다 다른 단어가 나옵니다.</p>
+              <p>3)단어들을 다 들으면 연습 단계로 이동 버튼을 누릅니다.</p>
+            </div>
             <ChildAudioGuidanceControls
-              onPlay={recognitionGuidance.playGuidance}
-              isPlaying={recognitionGuidance.isPlaying}
-              hasPlayedOnce={recognitionGuidance.hasPlayedOnce}
+              onPlay={playRecognitionWord}
+              isPlaying={recognitionPlaying}
+              hasPlayedOnce={recognitionHasPlayed}
+              primaryLabel="단어 듣기"
+              replayLabel="단어 듣기"
             />
           </div>
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {recognitionItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
+            {familiarizationItems.map((choice) => (
               <ChildChoiceCard
-                key={choice}
-                label={choice}
-                imageKey={recognitionItem.choiceImageKeys?.[index]}
-                onClick={() => setRecognitionAnswer(choice)}
-                selected={recognitionAnswer === choice}
-                disabled={recognitionGuidance.isPlaying}
+                key={choice.label}
+                label={choice.label}
+                imageKey={choice.imageKey}
+                onClick={() => {
+                  void handleRecognitionChoice(choice.label);
+                }}
+                selected={recognitionMatched.includes(choice.label)}
+                disabled={
+                  recognitionPlaying ||
+                  recognitionSkipped ||
+                  !recognitionCurrentTarget ||
+                  recognitionMatched.includes(choice.label)
+                }
               />
             ))}
           </div>
+          {recognitionWrongCount > 0 ? (
+            <p className="text-xs leading-6 text-[var(--muted)]">
+              틀린 횟수: {recognitionWrongCount}
+            </p>
+          ) : null}
+          {recognitionSkipped ? (
+            <p className="text-xs leading-6 text-amber-800">
+              틀린 횟수가 7번 이상이어서 이 확인 단계는 건너뜁니다.
+            </p>
+          ) : null}
           <button
             type="button"
             onClick={() => {
               setPracticeStepIndex(0);
               setPhase("practice");
             }}
-            disabled={!recognitionAnswer}
+            disabled={!allRecognitionMatched && !recognitionSkipped}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             연습 단계로 이동
@@ -488,7 +571,13 @@ export function SequencePracticeRunner({
                 type="button"
                 onClick={() => {
                   setPhase("recognition");
-                  setRecognitionAnswer("");
+                  setRecognitionMatched([]);
+                  setRecognitionWrongCount(0);
+                  setRecognitionCursor(0);
+                  setRecognitionCurrentTarget("");
+                  setRecognitionPlaying(false);
+                  setRecognitionHasPlayed(false);
+                  setRecognitionSkipped(false);
                   setPracticeSelections({});
                   setPracticeStepIndex(0);
                   setRoundState("idle");
