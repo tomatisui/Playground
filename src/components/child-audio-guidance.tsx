@@ -85,13 +85,17 @@ export function ChildAudioGuidanceControls({
   hasPlayedOnce,
   primaryLabel = "설명 듣기",
   replayLabel = "다시 듣기",
+  disableAfterPlayed = false,
 }: {
   onPlay: () => Promise<void>;
   isPlaying: boolean;
   hasPlayedOnce: boolean;
   primaryLabel?: string;
   replayLabel?: string;
+  disableAfterPlayed?: boolean;
 }) {
+  const shouldDisable = isPlaying || (disableAfterPlayed && hasPlayedOnce);
+
   return (
     <div className="flex items-center">
       <button
@@ -99,7 +103,7 @@ export function ChildAudioGuidanceControls({
         onClick={() => {
           void onPlay();
         }}
-        disabled={isPlaying}
+        disabled={shouldDisable}
         className={`${
           hasPlayedOnce
             ? "rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm"

@@ -87,10 +87,10 @@ function AnswerSlots({
             type="button"
             onClick={() => value && onRemove(index)}
             disabled={disabled || !value}
-            className={`rounded-[1rem] border px-3 py-3 text-left text-sm ${
+            className={`rounded-[1rem] border px-3 py-3 text-left text-sm transition ${
               value
                 ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)] text-[var(--foreground)]"
-                : "border-dashed border-[var(--line)] bg-white text-[var(--muted)]"
+                : "border-2 border-dashed border-[rgba(201,111,59,0.42)] bg-[rgba(201,111,59,0.06)] text-[var(--foreground)]"
             } disabled:opacity-50`}
           >
             {value || `빈 자리 ${index + 1}`}
@@ -535,6 +535,7 @@ export function SequencePracticeRunner({
               hasPlayedOnce={practiceHasPlayed}
               primaryLabel="단어 듣기"
               replayLabel="단어 듣기"
+              disableAfterPlayed
             />
           </div>
 
@@ -663,13 +664,25 @@ export function SequenceModuleRunner({
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [responses, setResponses] = useState(initialResponses);
-  const [assistCount, setAssistCount] = useState(initialAssistCount);
+  const [assistCount] = useState(initialAssistCount);
   const [currentSelection, setCurrentSelection] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
   const testInstructionLine = getChildInstructionLine(moduleCode);
+  const testGuidanceLines =
+    moduleCode === "M3-R"
+      ? [
+          "단어 듣기를 눌러 마지막에 들은 것부터 골라요",
+          "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
+          "빈 자리를 다 채우면 선택 완료를 눌러요",
+        ]
+      : [
+          "단어 듣기를 눌러 들은 순서대로 골라요",
+          "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
+          "빈 자리를 다 채우면 선택 완료를 눌러요",
+        ];
   const guidance = useChildAudioGuidance({
     instructionText,
     instructionAudio,
@@ -764,27 +777,6 @@ export function SequenceModuleRunner({
     router.refresh();
   }
 
-  async function recordAssist() {
-    const nextAssistCount = assistCount + 1;
-    setAssistCount(nextAssistCount);
-
-    const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        type: "assist",
-        caregiverAssistCount: nextAssistCount,
-      }),
-    });
-
-    if (!response.ok) {
-      setAssistCount((value) => Math.max(0, value - 1));
-      setErrorMessage("보호자 도움 기록을 저장하지 못했습니다. 다시 시도해 주세요.");
-    }
-  }
-
   if (!currentItem) {
     return (
       <div className="space-y-4">
@@ -809,6 +801,7 @@ export function SequenceModuleRunner({
         stageLabel="검사"
         instructionLine={testInstructionLine}
         progressLabel={currentProgress}
+        emphasis="strong"
       />
       {isResume ? (
         <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/85 p-4 text-sm leading-6 text-[var(--accent-strong)]">
@@ -824,11 +817,20 @@ export function SequenceModuleRunner({
 
       <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-sm font-semibold">문항 {currentIndex + 1}</p>
+          <div className="space-y-1">
+            <p className="text-sm font-semibold">문항 {currentIndex + 1}</p>
+            <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
+              {testGuidanceLines.map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+          </div>
           <ChildAudioGuidanceControls
             onPlay={guidance.playGuidance}
             isPlaying={guidance.isPlaying}
             hasPlayedOnce={guidance.hasPlayedOnce}
+            primaryLabel="단어 듣기"
+            replayLabel="단어 듣기"
           />
         </div>
 
@@ -854,7 +856,7 @@ export function SequenceModuleRunner({
           ))}
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+        <div className="mt-4">
           <button
             type="button"
             onClick={() => {
@@ -867,16 +869,6 @@ export function SequenceModuleRunner({
             className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {saving ? "저장 중..." : "현재 문항 저장"}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => {
-              void recordAssist();
-            }}
-            className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
-          >
-            보호자 도움 기록
           </button>
         </div>
       </article>
