@@ -8,6 +8,8 @@ import {
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
 import { ChildChoiceCard } from "@/components/child-choice-card";
+import { ChildStageHeader } from "@/components/child-stage-header";
+import { getChildInstructionLine } from "@/lib/child-ui-copy";
 import { speakText } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
@@ -253,6 +255,9 @@ export function SequencePracticeRunner({
   const readyForTest = phase === "done" && roundState === "passed";
   const hasPracticeStateMismatch =
     phase === "practice" && (!activePracticeItem || practiceStepIndex >= practiceItems.length);
+  const practiceInstructionLine =
+    moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
+  const testInstructionLine = getChildInstructionLine(moduleCode);
 
   function submitPracticeStep() {
     if (!activePracticeItem || !currentPracticeReady || submitting) {
@@ -269,10 +274,6 @@ export function SequencePracticeRunner({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <p className="text-sm leading-7 text-[var(--foreground)]">{instructionText}</p>
-      </div>
-
       {errorMessage ? (
         <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
           {errorMessage}
@@ -280,12 +281,15 @@ export function SequencePracticeRunner({
       ) : null}
 
       {phase === "familiarization" ? (
-        <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+        <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <ChildStageHeader
+            stageLabel="먼저 들어보기"
+            instructionLine="그림을 누르면 말이 나와요"
+          />
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold">친숙화</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                아래 7개 단어를 그림과 글자로 먼저 익힙니다. 각 카드를 눌러 단어를 들을 수 있습니다.
+              <p className="text-sm leading-7 text-[var(--muted)]">
+                그림을 눌러 말을 먼저 들어봐요.
               </p>
             </div>
             <ChildAudioGuidanceControls
@@ -312,20 +316,21 @@ export function SequencePracticeRunner({
             onClick={() => setPhase("recognition")}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white"
           >
-            친숙화 완료 후 확인 단계로 이동
+            다음으로 이동
           </button>
         </article>
       ) : null}
 
       {phase === "recognition" && recognitionItem ? (
-        <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+        <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <ChildStageHeader
+            stageLabel="확인"
+            instructionLine="말을 듣고 같은 그림을 골라요"
+          />
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">친숙화 확인</p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                들은 단어와 같은 카드를 골라 주세요.
-              </p>
-            </div>
+            <p className="text-sm leading-7 text-[var(--muted)]">
+              들은 말과 같은 그림을 골라요.
+            </p>
             <ChildAudioGuidanceControls
               onPlay={recognitionGuidance.playGuidance}
               isPlaying={recognitionGuidance.isPlaying}
@@ -390,16 +395,18 @@ export function SequencePracticeRunner({
       ) : null}
 
       {phase === "practice" && activePracticeItem ? (
-        <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+        <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <ChildStageHeader
+            stageLabel="연습"
+            instructionLine={practiceInstructionLine}
+            progressLabel={`${practiceStepIndex + 1}/${practiceItems.length}`}
+          />
           <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold">
-                연습 {practiceStepIndex + 1}
-              </p>
-              <p className="mt-2 text-sm leading-7 text-[var(--muted)]">
-                지시를 듣고 같은 순서로 빈 자리를 채워 주세요.
-              </p>
-            </div>
+            <p className="text-sm leading-7 text-[var(--muted)]">
+              {moduleCode === "M3-R"
+                ? "마지막에 들은 말을 먼저 골라요."
+                : "말을 들은 순서대로 자리를 채워요."}
+            </p>
             <ChildAudioGuidanceControls
               onPlay={practiceGuidance.playGuidance}
               isPlaying={practiceGuidance.isPlaying}
@@ -453,9 +460,13 @@ export function SequencePracticeRunner({
 
       {phase === "done" ? (
         <div className="space-y-4">
+          <ChildStageHeader
+            stageLabel="검사"
+            instructionLine={testInstructionLine}
+          />
           {roundState === "failed" ? (
             <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
-              친숙화 또는 연습에서 아직 어려움이 보였습니다.
+              먼저 들어보기 또는 연습에서 아직 어려움이 보였습니다.
               {practiceFailures >= 2
                 ? " 반복 어려움으로 내부 품질 플래그가 기록되며, 보호자는 본 과제로 계속 진행할 수 있습니다."
                 : " 같은 방식으로 한 번 더 연습해 볼 수 있습니다."}
@@ -527,6 +538,7 @@ export function SequenceModuleRunner({
   const [errorMessage, setErrorMessage] = useState("");
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
+  const testInstructionLine = getChildInstructionLine(moduleCode);
   const guidance = useChildAudioGuidance({
     instructionText,
     instructionAudio,
@@ -662,19 +674,16 @@ export function SequenceModuleRunner({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm leading-7 text-[var(--foreground)]">{instructionText}</p>
-          <span className="rounded-full bg-[rgba(201,111,59,0.12)] px-3 py-1 text-xs font-semibold text-[var(--accent-strong)]">
-            {currentProgress}
-          </span>
+      <ChildStageHeader
+        stageLabel="검사"
+        instructionLine={testInstructionLine}
+        progressLabel={currentProgress}
+      />
+      {isResume ? (
+        <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/85 p-4 text-sm leading-6 text-[var(--accent-strong)]">
+          이어서 할 수 있어요.
         </div>
-        {isResume ? (
-          <p className="mt-3 text-sm leading-6 text-[var(--accent-strong)]">
-            이전 중단 지점부터 이어서 진행합니다.
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       {errorMessage ? (
         <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">

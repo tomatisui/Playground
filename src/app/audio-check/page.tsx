@@ -52,13 +52,6 @@ export default async function AudioCheckPage({
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
-        <h1 className="text-4xl font-semibold tracking-[-0.05em]">
-          소리 확인
-        </h1>
-        <p className="mt-4 text-sm leading-7 text-[var(--muted)]">
-          보호자가 기기 소리 또는 헤드폰 연결이 적절한지 먼저 확인합니다. 아이가
-          작은 소리와 긴 소리를 들을 준비가 되었는지 점검해 주세요.
-        </p>
         <AudioCheckClient sessionId={session.id} />
       </section>
     </main>

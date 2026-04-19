@@ -8,6 +8,8 @@ import {
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
 import { ChildChoiceCard } from "@/components/child-choice-card";
+import { ChildStageHeader } from "@/components/child-stage-header";
+import { getChildInstructionLine } from "@/lib/child-ui-copy";
 
 type ModuleItem = {
   id: string;
@@ -174,21 +176,16 @@ export function ModuleRunner({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <div className="flex items-center justify-between gap-3">
-          <p className="text-sm leading-7 text-[var(--foreground)]">
-            {instructionText ?? instructions}
-          </p>
-          <span className="rounded-full bg-[rgba(201,111,59,0.12)] px-3 py-1 text-xs font-semibold text-[var(--accent-strong)]">
-            {currentProgress}
-          </span>
+      <ChildStageHeader
+        stageLabel="검사"
+        instructionLine={getChildInstructionLine(moduleCode)}
+        progressLabel={currentProgress}
+      />
+      {isResume ? (
+        <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/85 p-4 text-sm leading-6 text-[var(--accent-strong)]">
+          이어서 할 수 있어요.
         </div>
-        {isResume ? (
-          <p className="mt-3 text-sm leading-6 text-[var(--accent-strong)]">
-            이전 중단 지점부터 이어서 진행합니다.
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       {errorMessage ? (
         <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">

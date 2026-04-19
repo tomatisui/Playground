@@ -37,12 +37,20 @@ Instructions should usually be one short sentence. They should stay child-friend
 
 Child-facing task screens should keep the visible surface simple. The main task area should show only:
 
+- a small guardian-facing stage label
 - a short Korean instruction
 - one clear listen or replay control
 - the task UI itself
 - a primary action button when the step needs one
 
 Internal prototype labels, English module metadata, fallback notices, and debug-oriented copy should stay out of the main child-facing task surface. Those details may remain in admin or internal tooling.
+
+The current child-facing title policy uses a two-layer structure:
+
+- a small guardian-facing stage label such as `오디오 확인`, `먼저 들어보기`, `연습`, or `검사`
+- a larger child-facing action sentence such as `소리를 잘 들으면 시작해요` or `말을 잘 듣고 같은 순서로 골라요`
+
+Avoid exposing technical or internal stage terms such as `친숙화`, `recognition check`, `module runtime`, `INTERNAL PROTOTYPE`, `fallback_assets`, or `visible choices` in the main child-facing task surface.
 
 ## Image-Supported Choices
 

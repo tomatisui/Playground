@@ -7,6 +7,8 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
+import { ChildStageHeader } from "@/components/child-stage-header";
+import { getChildInstructionLine } from "@/lib/child-ui-copy";
 
 type PracticeItem = {
   id: string;
@@ -116,17 +118,16 @@ export function PracticeRunner({
 
   return (
     <div className="space-y-4">
+      <ChildStageHeader
+        stageLabel="연습"
+        instructionLine={getChildInstructionLine(moduleCode)}
+      />
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <p className="text-sm leading-7 text-[var(--foreground)]">
-          {instructionText ?? instructions}
-        </p>
-        <div className="mt-4">
-          <ChildAudioGuidanceControls
-            onPlay={guidance.playGuidance}
-            isPlaying={guidance.isPlaying}
-            hasPlayedOnce={guidance.hasPlayedOnce}
-          />
-        </div>
+        <ChildAudioGuidanceControls
+          onPlay={guidance.playGuidance}
+          isPlaying={guidance.isPlaying}
+          hasPlayedOnce={guidance.hasPlayedOnce}
+        />
       </div>
 
       {errorMessage ? (

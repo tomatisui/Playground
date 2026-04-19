@@ -5,6 +5,7 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
+import { ChildStageHeader } from "@/components/child-stage-header";
 
 export function AudioCheckClient({ sessionId }: { sessionId: string }) {
   const guidance = useChildAudioGuidance({
@@ -14,6 +15,11 @@ export function AudioCheckClient({ sessionId }: { sessionId: string }) {
 
   return (
     <>
+      <ChildStageHeader
+        stageLabel="오디오 확인"
+        instructionLine="소리를 잘 들으면 시작해요"
+      />
+
       <div className="mt-6 rounded-[1.5rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
         예시 확인 항목:
         <br />
