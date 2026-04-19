@@ -10,7 +10,7 @@ import {
 import { ChildChoiceCard } from "@/components/child-choice-card";
 import { ChildStageHeader } from "@/components/child-stage-header";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
-import { playFeedbackTone, speakText } from "@/lib/audio-playback";
+import { playFeedbackTone, speakText, wait } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
   label: string;
@@ -53,6 +53,9 @@ type SequenceModuleRunnerProps = {
   initialAssistCount: number;
   nextHref: string;
 };
+
+const PRACTICE_BUTTON_INSTRUCTION = "말을 잘 듣고, 들은 순서대로 고르세요";
+const PRACTICE_SEQUENCE_DELAY_MS = 1000;
 
 function buildTargetText(item: SequenceItem) {
   if ((item.promptSequence?.length ?? 0) > 0) {
@@ -101,9 +104,6 @@ function AnswerSlots({
 export function SequencePracticeRunner({
   sessionId,
   moduleCode,
-  instructionText,
-  instructionAudio,
-  visibleChoiceCount,
   trainingMasteryThreshold,
   familiarizationItems,
   practiceItems,
@@ -124,6 +124,8 @@ export function SequencePracticeRunner({
   const [recognitionSkipped, setRecognitionSkipped] = useState(false);
   const [practiceSelections, setPracticeSelections] = useState<Record<string, string[]>>({});
   const [practiceStepIndex, setPracticeStepIndex] = useState(0);
+  const [practicePlaying, setPracticePlaying] = useState(false);
+  const [practiceHasPlayed, setPracticeHasPlayed] = useState(false);
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
@@ -136,12 +138,11 @@ export function SequencePracticeRunner({
   });
 
   const activePracticeItem = practiceItems[practiceStepIndex] ?? null;
-  const practiceGuidance = useChildAudioGuidance({
-    instructionText,
-    instructionAudio,
-    stimulusText: activePracticeItem ? buildTargetText(activePracticeItem) : undefined,
-    autoplayKey: activePracticeItem ? `${moduleCode}-${activePracticeItem.id}` : `${moduleCode}-practice`,
-  });
+
+  function resetPracticePlayback() {
+    setPracticeHasPlayed(false);
+    setPracticePlaying(false);
+  }
 
   async function playFamiliarizationLabel(label: string) {
     const playbackKey = `fam-${label}`;
@@ -238,6 +239,35 @@ export function SequencePracticeRunner({
     }));
   }
 
+  async function playPracticeSequence() {
+    if (!activePracticeItem || practicePlaying) {
+      return;
+    }
+
+    setPracticePlaying(true);
+    setPracticeHasPlayed(true);
+
+    try {
+      const instructionResult = await speakText(PRACTICE_BUTTON_INSTRUCTION);
+
+      if (instructionResult.status !== "ended") {
+        return;
+      }
+
+      const sequence =
+        activePracticeItem.promptSequence && activePracticeItem.promptSequence.length > 0
+          ? activePracticeItem.promptSequence
+          : [activePracticeItem.prompt];
+
+      for (const spokenItem of sequence) {
+        await wait(PRACTICE_SEQUENCE_DELAY_MS);
+        await speakText(spokenItem);
+      }
+    } finally {
+      setPracticePlaying(false);
+    }
+  }
+
   async function submitPracticeRound() {
     if (!practiceItems.every((item) => {
       const selected = practiceSelections[item.id] ?? [];
@@ -330,6 +360,7 @@ export function SequencePracticeRunner({
     }
 
     if (practiceStepIndex < practiceItems.length - 1) {
+      resetPracticePlayback();
       setPracticeStepIndex((value) => value + 1);
       return;
     }
@@ -440,6 +471,7 @@ export function SequencePracticeRunner({
           <button
             type="button"
             onClick={() => {
+              resetPracticePlayback();
               setPracticeStepIndex(0);
               setPhase("practice");
             }}
@@ -470,6 +502,7 @@ export function SequencePracticeRunner({
               <button
                 type="button"
                 onClick={() => {
+                  resetPracticePlayback();
                   setPracticeStepIndex(0);
                   setPhase("practice");
                 }}
@@ -490,15 +523,18 @@ export function SequencePracticeRunner({
             progressLabel={`${practiceStepIndex + 1}/${practiceItems.length}`}
           />
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm leading-7 text-[var(--muted)]">
-              {moduleCode === "M3-R"
-                ? "마지막에 들은 말을 먼저 골라요."
-                : "말을 들은 순서대로 자리를 채워요."}
-            </p>
+            <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
+              <p>단어 듣기를 눌러 들은 순서대로 골라요</p>
+              <p>그림을 바꾸고 싶으면 채워진 그림을 눌러요</p>
+              <p>빈 자리를 다 채우면 선택 완료를 눌러요</p>
+              <p className="font-semibold text-amber-800">주의: 단어 듣기는 한 번만 나와요</p>
+            </div>
             <ChildAudioGuidanceControls
-              onPlay={practiceGuidance.playGuidance}
-              isPlaying={practiceGuidance.isPlaying}
-              hasPlayedOnce={practiceGuidance.hasPlayedOnce}
+              onPlay={playPracticeSequence}
+              isPlaying={practicePlaying}
+              hasPlayedOnce={practiceHasPlayed}
+              primaryLabel="단어 듣기"
+              replayLabel="단어 듣기"
             />
           </div>
 
@@ -507,19 +543,19 @@ export function SequencePracticeRunner({
               count={activePracticeItem.promptSequence?.length ?? 1}
               selected={practiceSelections[activePracticeItem.id] ?? []}
               onRemove={(index) => removeSelection(activePracticeItem, index)}
-              disabled={practiceGuidance.isPlaying}
+              disabled={practicePlaying}
             />
           </div>
 
           <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {activePracticeItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
+            {familiarizationItems.map((choice) => (
               <ChildChoiceCard
-                key={choice}
-                label={choice}
-                imageKey={activePracticeItem.choiceImageKeys?.[index]}
-                onClick={() => appendSelection(activePracticeItem, choice)}
-                selected={(practiceSelections[activePracticeItem.id] ?? []).includes(choice)}
-                disabled={practiceGuidance.isPlaying}
+                key={choice.label}
+                label={choice.label}
+                imageKey={choice.imageKey}
+                onClick={() => appendSelection(activePracticeItem, choice.label)}
+                selected={(practiceSelections[activePracticeItem.id] ?? []).includes(choice.label)}
+                disabled={practicePlaying}
               />
             ))}
           </div>
@@ -527,7 +563,7 @@ export function SequencePracticeRunner({
           <button
             type="button"
             onClick={submitPracticeStep}
-            disabled={!currentPracticeReady || submitting || practiceGuidance.isPlaying}
+            disabled={!currentPracticeReady || submitting || practicePlaying}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {submitting
@@ -579,6 +615,7 @@ export function SequencePracticeRunner({
                   setRecognitionHasPlayed(false);
                   setRecognitionSkipped(false);
                   setPracticeSelections({});
+                  resetPracticePlayback();
                   setPracticeStepIndex(0);
                   setRoundState("idle");
                   router.refresh();
