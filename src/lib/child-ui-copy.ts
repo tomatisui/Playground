@@ -1,4 +1,4 @@
-export type ChildStageLabel = "오디오 확인" | "먼저 들어보기" | "연습" | "검사";
+export type ChildStageLabel = "오디오 확인" | "볼륨 조정 단계" | "먼저 들어보기" | "연습" | "검사";
 
 export function getChildInstructionLine(moduleCode: string) {
   switch (moduleCode) {

@@ -4,9 +4,16 @@
 
 This prototype treats any directly child-facing interaction as audio-guided by default. Preschool users in the 5-6 age band should not need to rely on text-only instructions to continue a task safely.
 
+## Parent-Guided Setup Screens
+
+- consent
+- child info
+- audio check
+
+These setup screens are parent-guided. They should stay simple, readable, and free of debug-heavy metadata, but they do not need to follow the same child-task copy rules as the actual test stages.
+
 ## Child-Facing Screens
 
-- audio check
 - familiarization stages
 - recognition check stages
 - practice stages
@@ -14,7 +21,7 @@ This prototype treats any directly child-facing interaction as audio-guided by d
 - interruption and recovery screens where the child must continue
 - retry and repeat-instruction situations
 
-Guardian-only screens such as consent, child info entry, and admin do not require mandatory child audio guidance.
+Admin remains guardian-only and does not require child audio guidance.
 
 ## Required Behavior
 
