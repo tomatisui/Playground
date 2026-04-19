@@ -73,6 +73,8 @@ function buildCalendarDays(year: number, month: number) {
 
 export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
   const eligibleYears = useMemo(() => getEligibleYears(seoulToday), [seoulToday]);
+  const [childLabel, setChildLabel] = useState("");
+  const [guardianName, setGuardianName] = useState("");
   const [guardianPhone, setGuardianPhone] = useState("");
   const [guardianRelationship, setGuardianRelationship] = useState<string>("부모");
   const [birthYear, setBirthYear] = useState<number | "">("");
@@ -106,7 +108,26 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
     return "선택한 생년월일은 현재 기준 만 5세 또는 만 6세 범위에 해당하지 않습니다.";
   }, [birthDay, birthMonth, birthYear, seoulToday]);
 
-  const isAgeEligible = ageGuide.includes("만 5세입니다.") || ageGuide.includes("만 6세입니다.");
+  const ageSnapshot = useMemo(() => {
+    if (!birthYear || !birthMonth || !birthDay) {
+      return null;
+    }
+
+    return getAgeSnapshot(seoulToday, birthYear, birthMonth, birthDay);
+  }, [birthDay, birthMonth, birthYear, seoulToday]);
+
+  const normalizedPhone = guardianPhone.replace(/\D/g, "");
+  const hasValidPhone = normalizedPhone.length === 11;
+  const hasBirthDate = Boolean(birthYear && birthMonth && birthDay);
+  const isAgeEligible =
+    ageSnapshot !== null && (ageSnapshot.ageYears === 5 || ageSnapshot.ageYears === 6);
+  const canSubmit =
+    childLabel.trim().length > 0 &&
+    guardianName.trim().length > 0 &&
+    guardianRelationship.trim().length > 0 &&
+    hasValidPhone &&
+    hasBirthDate &&
+    isAgeEligible;
 
   return (
     <form action={action} className="mt-6 space-y-5">
@@ -116,6 +137,8 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
           name="childLabel"
           required
           minLength={1}
+          value={childLabel}
+          onChange={(event) => setChildLabel(event.target.value)}
           className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
           placeholder="예: 민서"
         />
@@ -126,6 +149,9 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
           <span className="mb-2 block text-sm font-semibold">보호자 이름</span>
           <input
             name="guardianName"
+            required
+            value={guardianName}
+            onChange={(event) => setGuardianName(event.target.value)}
             className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
             placeholder="예: 김보호"
           />
@@ -263,7 +289,21 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
         <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/75 p-4 text-sm leading-7 text-[var(--muted)]">
           {ageGuide}
         </div>
+        {!isAgeEligible && hasBirthDate ? (
+          <p className="text-xs leading-6 text-amber-800">
+            생년월일은 현재 기준 만 5세 또는 만 6세 범위여야 합니다.
+          </p>
+        ) : null}
       </fieldset>
+
+      {!canSubmit ? (
+        <div className="rounded-[1.2rem] border border-[var(--line)] bg-white/75 p-4 text-xs leading-6 text-[var(--muted)]">
+          {!childLabel.trim() ? <p>아동 이름 또는 식별명을 입력해 주세요.</p> : null}
+          {!guardianName.trim() ? <p>보호자 이름을 입력해 주세요.</p> : null}
+          {!hasValidPhone ? <p>휴대폰 번호는 11자리 숫자로 입력해 주세요.</p> : null}
+          {!hasBirthDate ? <p>태어난 연도, 달, 날짜를 모두 선택해 주세요.</p> : null}
+        </div>
+      ) : null}
 
       <input type="hidden" name="birthYear" value={birthYear} />
       <input type="hidden" name="birthMonth" value={birthMonth} />
@@ -271,7 +311,7 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
 
       <button
         type="submit"
-        disabled={guardianPhone.replace(/\D/g, "").length !== 11 || !isAgeEligible}
+        disabled={!canSubmit}
         className="w-full rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
       >
         세션 생성 후 오디오 확인으로 이동
