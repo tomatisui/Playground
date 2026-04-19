@@ -20,21 +20,21 @@ export function AudioCheckClient({ sessionId }: { sessionId: string }) {
         instructionLine="소리를 잘 들으면 시작해요"
       />
 
-      <div className="mt-6 rounded-[1.5rem] bg-[var(--card-strong)] p-4 text-sm leading-7 text-[var(--muted)]">
-        예시 확인 항목:
-        <br />
-        1. 보호자가 재생 음성을 분명히 들을 수 있음
-        <br />
-        2. 아이가 소리가 나온다는 점을 이해함
-        <br />
-        3. 주변 소음이 과도하지 않음
-        <div className="mt-4">
+      <div className="mt-6 rounded-[1.5rem] border border-[var(--line)] bg-white/85 p-4">
+        <div className="flex items-center justify-end">
           <ChildAudioGuidanceControls
             onPlay={guidance.playGuidance}
             isPlaying={guidance.isPlaying}
             hasPlayedOnce={guidance.hasPlayedOnce}
           />
         </div>
+        <p className="mt-4 text-sm leading-7 text-[var(--foreground)]">
+          준비가 되면 아래 버튼을 눌러 시작해요.
+        </p>
+        <p className="mt-3 text-xs leading-6 text-[var(--muted)]">
+          보호자 참고: 소리가 또렷하게 들리고 주변이 너무 시끄럽지 않은지만
+          짧게 확인해 주세요.
+        </p>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">

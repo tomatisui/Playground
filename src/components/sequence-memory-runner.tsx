@@ -324,7 +324,7 @@ export function SequencePracticeRunner({
       {phase === "recognition" && recognitionItem ? (
         <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
           <ChildStageHeader
-            stageLabel="확인"
+            stageLabel="연습"
             instructionLine="말을 듣고 같은 그림을 골라요"
           />
           <div className="flex items-center justify-between gap-3">
