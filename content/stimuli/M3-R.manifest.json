@@ -176,6 +176,23 @@
       "notes": "Age 6 reverse-memory core item using a 3-item sequence."
     },
     {
+      "id": "m3r-6-3b",
+      "ageBand": [6],
+      "contentGroup": "reverse_sequence",
+      "prompt": "물, 공, 집",
+      "promptSequence": ["물", "공", "집"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3r/m3r-6-3b.wav",
+      "choices": ["공", "눈", "밥", "집", "손", "물"],
+      "choiceImageKeys": ["ball", "snow", "rice", "house", "hand", "water"],
+      "choiceImages": [],
+      "correctAnswer": "집, 공, 물",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory second item using a 3-item sequence."
+    },
+    {
       "id": "m3r-6-4",
       "ageBand": [6],
       "contentGroup": "reverse_sequence",
@@ -193,6 +210,23 @@
       "notes": "Age 6 reverse-memory core item using a 4-item sequence."
     },
     {
+      "id": "m3r-6-4b",
+      "ageBand": [6],
+      "contentGroup": "reverse_sequence",
+      "prompt": "눈, 책, 공, 손",
+      "promptSequence": ["눈", "책", "공", "손"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3r/m3r-6-4b.wav",
+      "choices": ["공", "눈", "밥", "손", "책", "물"],
+      "choiceImageKeys": ["ball", "snow", "rice", "hand", "book", "water"],
+      "choiceImages": [],
+      "correctAnswer": "손, 공, 책, 눈",
+      "difficultyLevel": "core_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory second item using a 4-item sequence."
+    },
+    {
       "id": "m3r-6-5",
       "ageBand": [6],
       "contentGroup": "reverse_sequence",
@@ -208,6 +242,23 @@
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
       "notes": "Age 6 reverse-memory stretch item using a 5-item sequence and preserving one visible distractor."
+    },
+    {
+      "id": "m3r-6-5b",
+      "ageBand": [6],
+      "contentGroup": "reverse_sequence",
+      "prompt": "밥, 물, 집, 공, 눈",
+      "promptSequence": ["밥", "물", "집", "공", "눈"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3r/m3r-6-5b.wav",
+      "choices": ["공", "눈", "밥", "집", "손", "물"],
+      "choiceImageKeys": ["ball", "snow", "rice", "house", "hand", "water"],
+      "choiceImages": [],
+      "correctAnswer": "눈, 공, 집, 물, 밥",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 reverse-memory second item using a 5-item sequence and preserving one visible distractor."
     }
   ],
   "promptAudio": [],

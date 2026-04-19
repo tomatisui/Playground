@@ -48,7 +48,24 @@ type SequenceModuleRunnerProps = {
 };
 
 type SequenceTone = "practice" | "test";
+type SlotValue = string | null;
 const SEQUENCE_DELAY_MS = 1000;
+
+function getSlotCount(item: SequenceItem) {
+  return item.promptSequence?.length ?? 1;
+}
+
+function normalizeSlotSelection(selection: SlotValue[] | undefined, slotCount: number) {
+  return Array.from({ length: slotCount }, (_, index) => selection?.[index] ?? null);
+}
+
+function countSelectedSlots(selection: SlotValue[]) {
+  return selection.filter((value): value is string => Boolean(value)).length;
+}
+
+function serializeSlotSelection(selection: SlotValue[]) {
+  return selection.filter((value): value is string => Boolean(value)).join(", ");
+}
 
 function getToneClasses(seed: string) {
   const tones = [
@@ -175,7 +192,7 @@ function SequenceCard({
 }) {
   const toneClasses = getToneClasses(imageKey || label);
   const baseClasses =
-    "flex min-h-[5.5rem] w-full items-center gap-3 rounded-[1.1rem] px-4 py-4 text-left transition";
+    "flex h-32 w-32 flex-col items-center justify-center gap-2 rounded-[1.25rem] p-4 text-center transition";
   const toneClassesByMode =
     tone === "test"
       ? "border border-[rgba(58,111,168,0.36)] bg-[rgba(245,250,255,0.98)]"
@@ -184,7 +201,7 @@ function SequenceCard({
     <>
       <div
         aria-hidden="true"
-        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] bg-gradient-to-br ${toneClasses}`}
+        className={`relative flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] bg-gradient-to-br ${toneClasses}`}
       >
         <div className="h-6 w-6 rounded-full bg-white/80" />
         <div className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-white/60" />
@@ -219,13 +236,13 @@ function AnswerSlots({
 }: {
   count: number;
   pool: TrainingPoolItem[];
-  selected: string[];
+  selected: SlotValue[];
   onRemove: (index: number) => void;
   disabled?: boolean;
   tone: SequenceTone;
 }) {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="flex flex-wrap justify-center gap-3">
       {Array.from({ length: count }, (_, index) => {
         const value = selected[index];
         const selectedItem = value
@@ -235,7 +252,7 @@ function AnswerSlots({
         return (
           <div
             key={`slot-${index}`}
-            className="min-w-[7.25rem] flex-1 basis-[7.25rem] sm:min-w-[8rem] sm:basis-[8rem]"
+            className="h-32 w-32 flex-none"
           >
             {selectedItem ? (
               <SequenceCard
@@ -247,7 +264,7 @@ function AnswerSlots({
               />
             ) : (
               <div
-                className={`flex min-h-[5.5rem] w-full items-center rounded-[1.1rem] border-2 border-dashed px-4 py-4 text-left text-base font-semibold ${
+                className={`flex h-32 w-32 items-center justify-center rounded-[1.25rem] border-2 border-dashed p-4 text-center text-base font-semibold ${
                   tone === "test"
                     ? "border-[rgba(58,111,168,0.55)] bg-[rgba(58,111,168,0.1)] text-[var(--foreground)]"
                     : "border-[rgba(201,111,59,0.5)] bg-[rgba(201,111,59,0.08)] text-[var(--foreground)]"
@@ -272,22 +289,22 @@ function ChoiceGrid({
   matched = [],
 }: {
   pool: TrainingPoolItem[];
-  selected: string[];
+  selected: SlotValue[];
   onSelect: (label: string) => void;
   disabled?: boolean;
   tone: SequenceTone;
   matched?: string[];
 }) {
   return (
-    <div className="mt-4 flex flex-wrap gap-3">
+    <div className="mt-4 flex flex-wrap justify-center gap-3">
       {pool.map((choice) => (
         <div
           key={choice.label}
-          className="min-w-[7.25rem] flex-1 basis-[7.25rem] sm:min-w-[8rem] sm:basis-[8rem]"
+          className="h-32 w-32 flex-none"
         >
           {selected.includes(choice.label) && matched.length === 0 ? (
             <div
-              className={`min-h-[5.5rem] w-full rounded-[1.1rem] border-2 border-dashed ${
+              className={`h-32 w-32 rounded-[1.25rem] border-2 border-dashed ${
                 tone === "test"
                   ? "border-[rgba(58,111,168,0.34)] bg-[rgba(58,111,168,0.06)]"
                   : "border-[rgba(201,111,59,0.3)] bg-[rgba(201,111,59,0.05)]"
@@ -329,7 +346,7 @@ export function SequencePracticeRunner({
   const [recognitionPlaying, setRecognitionPlaying] = useState(false);
   const [recognitionHasPlayed, setRecognitionHasPlayed] = useState(false);
   const [recognitionSkipped, setRecognitionSkipped] = useState(false);
-  const [practiceSelections, setPracticeSelections] = useState<Record<string, string[]>>({});
+  const [practiceSelections, setPracticeSelections] = useState<Record<string, SlotValue[]>>({});
   const [practiceStepIndex, setPracticeStepIndex] = useState(0);
   const [practicePlayingItemId, setPracticePlayingItemId] = useState("");
   const [practicePlayedItemIds, setPracticePlayedItemIds] = useState<string[]>([]);
@@ -360,6 +377,9 @@ export function SequencePracticeRunner({
   const testInstructionLine = getChildInstructionLine(moduleCode);
   const allRecognitionMatched = recognitionMatched.length === familiarizationItems.length;
   const practiceGuidanceLines = getSequenceGuidanceLines(moduleCode);
+  const activePracticeSelection = activePracticeItem
+    ? normalizeSlotSelection(practiceSelections[activePracticeItem.id], getSlotCount(activePracticeItem))
+    : [];
 
   function resetPracticePlayback(clearPlayed = false) {
     setPracticePlayingItemId("");
@@ -443,24 +463,29 @@ export function SequencePracticeRunner({
   }
 
   function appendSelection(item: SequenceItem, choice: string) {
-    const slotCount = item.promptSequence?.length ?? 1;
-    const current = practiceSelections[item.id] ?? [];
+    const slotCount = getSlotCount(item);
+    const current = normalizeSlotSelection(practiceSelections[item.id], slotCount);
+    const nextEmptyIndex = current.findIndex((value) => !value);
 
-    if (current.includes(choice) || current.length >= slotCount) {
+    if (current.includes(choice) || nextEmptyIndex === -1) {
       return;
     }
 
+    const next = [...current];
+    next[nextEmptyIndex] = choice;
     setPracticeSelections((value) => ({
       ...value,
-      [item.id]: [...current, choice],
+      [item.id]: next,
     }));
   }
 
   function removeSelection(item: SequenceItem, index: number) {
-    const current = practiceSelections[item.id] ?? [];
+    const current = normalizeSlotSelection(practiceSelections[item.id], getSlotCount(item));
+    const next = [...current];
+    next[index] = null;
     setPracticeSelections((value) => ({
       ...value,
-      [item.id]: current.filter((_, slotIndex) => slotIndex !== index),
+      [item.id]: next,
     }));
   }
 
@@ -504,8 +529,8 @@ export function SequencePracticeRunner({
 
     const recognitionCorrect = recognitionMatched.length;
     const practiceCorrect = practiceItems.filter((item) => {
-      const selected = practiceSelections[item.id] ?? [];
-      return selected.join(", ") === item.correctAnswer;
+      const selected = normalizeSlotSelection(practiceSelections[item.id], getSlotCount(item));
+      return serializeSlotSelection(selected) === item.correctAnswer;
     }).length;
     const total = familiarizationItems.length + practiceItems.length;
     const mastery = total > 0 ? (recognitionCorrect + practiceCorrect) / total : 0;
@@ -561,12 +586,14 @@ export function SequencePracticeRunner({
   }
 
   const currentPracticeReady = activePracticeItem
-    ? (practiceSelections[activePracticeItem.id] ?? []).length ===
-      (activePracticeItem.promptSequence?.length ?? 1)
+    ? countSelectedSlots(activePracticeSelection) === getSlotCount(activePracticeItem)
     : false;
   const practiceStepCompleted = currentPracticeReady;
   const allPracticeCompleted = practiceItems.every(
-    (item) => (practiceSelections[item.id] ?? []).length === (item.promptSequence?.length ?? 1),
+    (item) =>
+      countSelectedSlots(
+        normalizeSlotSelection(practiceSelections[item.id], getSlotCount(item)),
+      ) === getSlotCount(item),
   );
   const readyForTest = phase === "done" && roundState === "passed";
   const hasPracticeStateMismatch =
@@ -749,9 +776,9 @@ export function SequencePracticeRunner({
           </div>
 
           <AnswerSlots
-            count={activePracticeItem.promptSequence?.length ?? 1}
+            count={getSlotCount(activePracticeItem)}
             pool={familiarizationItems}
-            selected={practiceSelections[activePracticeItem.id] ?? []}
+            selected={activePracticeSelection}
             onRemove={(index) => removeSelection(activePracticeItem, index)}
             disabled={practicePlaying}
             tone="practice"
@@ -760,7 +787,7 @@ export function SequencePracticeRunner({
           {practiceChoicesVisible ? (
             <ChoiceGrid
               pool={familiarizationItems}
-              selected={practiceSelections[activePracticeItem.id] ?? []}
+              selected={activePracticeSelection}
               onSelect={(label) => appendSelection(activePracticeItem, label)}
               disabled={practicePlaying}
               tone="practice"
@@ -868,7 +895,7 @@ export function SequenceModuleRunner({
   const [currentIndex, setCurrentIndex] = useState(normalizedInitialIndex);
   const [responses, setResponses] = useState(() => runtimePlan.map((_, index) => initialResponses[index] ?? ""));
   const [assistCount] = useState(initialAssistCount);
-  const [currentSelection, setCurrentSelection] = useState<string[]>([]);
+  const [currentSelection, setCurrentSelection] = useState<SlotValue[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [playingItemId, setPlayingItemId] = useState("");
@@ -888,7 +915,8 @@ export function SequenceModuleRunner({
     () => `${Math.min(currentIndex + 1, runtimePlan.length)}/${runtimePlan.length}`,
     [currentIndex, runtimePlan.length],
   );
-  const currentSlotCount = currentItem?.promptSequence?.length ?? 1;
+  const currentSlotCount = currentItem ? getSlotCount(currentItem) : 1;
+  const normalizedCurrentSelection = normalizeSlotSelection(currentSelection, currentSlotCount);
   const testPlaying = currentAttempt ? playingItemId === currentAttempt.runtimeId : false;
   const testHasPlayedOnce = currentAttempt ? playedItemIds.includes(currentAttempt.runtimeId) : false;
   const testChoicesVisible = currentAttempt ? revealedItemIds.includes(currentAttempt.runtimeId) : false;
@@ -904,20 +932,24 @@ export function SequenceModuleRunner({
       return;
     }
 
-    if (currentSelection.length > currentSlotCount) {
-      setCurrentSelection((value) => value.slice(0, currentSlotCount));
+    const current = normalizeSlotSelection(currentSelection, currentSlotCount);
+    const nextEmptyIndex = current.findIndex((value) => !value);
+
+    if (current.includes(choice) || nextEmptyIndex === -1) {
       return;
     }
 
-    if (currentSelection.includes(choice) || currentSelection.length >= currentSlotCount) {
-      return;
-    }
-
-    setCurrentSelection((value) => [...value, choice]);
+    const next = [...current];
+    next[nextEmptyIndex] = choice;
+    setCurrentSelection(next);
   }
 
   function removeSelection(index: number) {
-    setCurrentSelection((value) => value.filter((_, slotIndex) => slotIndex !== index));
+    setCurrentSelection((value) => {
+      const next = normalizeSlotSelection(value, currentSlotCount);
+      next[index] = null;
+      return next;
+    });
   }
 
   async function playTestSequence() {
@@ -950,14 +982,14 @@ export function SequenceModuleRunner({
       return;
     }
 
-    if (currentSelection.length !== currentSlotCount) {
+    if (countSelectedSlots(normalizedCurrentSelection) !== currentSlotCount) {
       return;
     }
 
     setSaving(true);
     setErrorMessage("");
     const updatedResponses = [...responses];
-    updatedResponses[currentIndex] = currentSelection.join(", ");
+    updatedResponses[currentIndex] = serializeSlotSelection(normalizedCurrentSelection);
 
     const correctCount = updatedResponses.filter(
       (response, index) => response === runtimePlan[index]?.item.correctAnswer,
@@ -1110,7 +1142,7 @@ export function SequenceModuleRunner({
           <AnswerSlots
             count={currentSlotCount}
             pool={choicePool}
-            selected={currentSelection}
+            selected={normalizedCurrentSelection}
             onRemove={removeSelection}
             disabled={testPlaying || saving}
             tone="test"
@@ -1120,7 +1152,7 @@ export function SequenceModuleRunner({
         {testChoicesVisible ? (
           <ChoiceGrid
             pool={choicePool}
-            selected={currentSelection}
+            selected={normalizedCurrentSelection}
             onSelect={appendSelection}
             disabled={testPlaying || saving}
             tone="test"
@@ -1137,7 +1169,7 @@ export function SequenceModuleRunner({
             onClick={() => {
               void submitCurrentAnswer();
             }}
-            disabled={saving || currentSelection.length !== currentSlotCount}
+            disabled={saving || countSelectedSlots(normalizedCurrentSelection) !== currentSlotCount}
             className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
             {saving ? "저장 중..." : "선택 완료"}

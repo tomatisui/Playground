@@ -176,6 +176,23 @@
       "notes": "Age 5 forward-memory item using a 3-item sequence."
     },
     {
+      "id": "m3-5-3b",
+      "ageBand": [5, 6],
+      "contentGroup": "forward_sequence",
+      "prompt": "밥, 물, 공",
+      "promptSequence": ["밥", "물", "공"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-5-3b.wav",
+      "choices": ["공", "눈", "밥", "집", "손", "물"],
+      "choiceImageKeys": ["ball", "snow", "rice", "house", "hand", "water"],
+      "choiceImages": [],
+      "correctAnswer": "밥, 물, 공",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory second item using a 3-item sequence."
+    },
+    {
       "id": "m3-5-4",
       "ageBand": [5, 6],
       "contentGroup": "forward_sequence",
@@ -191,6 +208,23 @@
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
       "notes": "Age 5 forward-memory item using a 4-item sequence."
+    },
+    {
+      "id": "m3-5-4b",
+      "ageBand": [5, 6],
+      "contentGroup": "forward_sequence",
+      "prompt": "집, 공, 책, 손",
+      "promptSequence": ["집", "공", "책", "손"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-5-4b.wav",
+      "choices": ["공", "눈", "밥", "집", "책", "손"],
+      "choiceImageKeys": ["ball", "snow", "rice", "house", "book", "hand"],
+      "choiceImages": [],
+      "correctAnswer": "집, 공, 책, 손",
+      "difficultyLevel": "stretch",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 forward-memory second item using a 4-item sequence."
     },
     {
       "id": "m3-6-5",
@@ -225,6 +259,23 @@
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
       "notes": "Age 6 additional forward-memory item using a 5-item sequence and preserving one visible distractor."
+    },
+    {
+      "id": "m3-6-6b",
+      "ageBand": [6],
+      "contentGroup": "forward_sequence",
+      "prompt": "물, 집, 눈, 책, 밥",
+      "promptSequence": ["물", "집", "눈", "책", "밥"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m3/m3-6-6b.wav",
+      "choices": ["공", "눈", "밥", "집", "책", "물"],
+      "choiceImageKeys": ["ball", "snow", "rice", "house", "book", "water"],
+      "choiceImages": [],
+      "correctAnswer": "물, 집, 눈, 책, 밥",
+      "difficultyLevel": "stretch_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 second forward-memory item using a 5-item sequence and preserving one visible distractor."
     }
   ],
   "promptAudio": [],
