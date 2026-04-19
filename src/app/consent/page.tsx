@@ -15,7 +15,7 @@ export default function ConsentPage() {
         <div className="mt-5 space-y-4 text-sm leading-7 text-[var(--muted)]">
           <p>
             이 프로토타입은 유아의 듣기 관련 과제를 짧게 관찰하기 위한
-            비진단적 스크리닝 흐름입니다. 결과는 일상 관찰을 돕기 위한 정보이며
+            비진단적 선별 검사입니다. 결과는 일상 관찰을 돕기 위한 정보이며
             청각, 언어, 주의, 발달 상태를 진단하지 않습니다.
           </p>
           <p>
