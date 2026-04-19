@@ -6,15 +6,59 @@ export function wait(ms: number) {
   });
 }
 
-export async function speakText(text: string) {
+export const SPEECH_PLAYBACK_TIMEOUT_MS = 4000;
+
+export type SpeechPlaybackResult = {
+  status: "ended" | "error" | "timeout" | "unavailable";
+};
+
+export async function speakText(
+  text: string,
+  { timeoutMs = SPEECH_PLAYBACK_TIMEOUT_MS }: { timeoutMs?: number } = {},
+): Promise<SpeechPlaybackResult> {
+  if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
+    return { status: "unavailable" };
+  }
+
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ko-KR";
 
-  await new Promise<void>((resolve) => {
-    utterance.onend = () => resolve();
-    utterance.onerror = () => resolve();
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
+  return await new Promise<SpeechPlaybackResult>((resolve) => {
+    let settled = false;
+    let timeoutId = 0;
+
+    const finish = (status: SpeechPlaybackResult["status"]) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      utterance.onend = null;
+      utterance.onerror = null;
+      window.clearTimeout(timeoutId);
+      resolve({ status });
+    };
+
+    utterance.onend = () => finish("ended");
+    utterance.onerror = () => finish("error");
+
+    timeoutId = window.setTimeout(() => {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {
+        // Ignore cleanup errors and recover the UI lock.
+      }
+      finish("timeout");
+    }, timeoutMs);
+
+    try {
+      if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
+      }
+      window.speechSynthesis.speak(utterance);
+    } catch {
+      finish("error");
+    }
   });
 }
 

@@ -33,12 +33,19 @@ export function useChildAudioGuidance({
 
     setIsPlaying(true);
     try {
-      await speakText(instructionAudio || instructionText);
+      const instructionResult = await speakText(instructionAudio || instructionText);
+      const instructionDidComplete = instructionResult.status === "ended";
+
+      setHasPlayedOnce(true);
+
+      if (!instructionDidComplete) {
+        return;
+      }
+
       if (stimulusText) {
         await wait(delayMs);
         await playPrompt(stimulusPlaybackType, stimulusText);
       }
-      setHasPlayedOnce(true);
     } finally {
       setIsPlaying(false);
     }
