@@ -1,5 +1,22 @@
 import { createSession } from "@/app/actions";
+import { ChildInfoForm } from "@/components/child-info-form";
 import { PrototypeBadge } from "@/components/prototype-badge";
+
+function getSeoulTodayParts() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+
+  return {
+    year: Number(parts.find((part) => part.type === "year")?.value ?? "0"),
+    month: Number(parts.find((part) => part.type === "month")?.value ?? "0"),
+    day: Number(parts.find((part) => part.type === "day")?.value ?? "0"),
+  };
+}
 
 export default async function ChildInfoPage({
   searchParams,
@@ -7,6 +24,7 @@ export default async function ChildInfoPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { error } = await searchParams;
+  const seoulToday = getSeoulTodayParts();
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col px-4 py-6 sm:px-6 sm:py-10">
@@ -27,61 +45,21 @@ export default async function ChildInfoPage({
           <div className="mt-5 rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
             {error === "missing-child-label"
               ? "아동 이름 또는 식별명을 입력해 주세요."
+              : error === "missing-guardian-phone"
+                ? "휴대폰 번호를 입력해 주세요."
+                : error === "invalid-guardian-phone"
+                  ? "휴대폰 번호는 11자리 숫자로 입력해 주세요."
+                  : error === "missing-birth-date"
+                    ? "태어난 연도, 달, 날짜를 모두 선택해 주세요."
+                    : error === "invalid-age-range"
+                      ? "선택한 생년월일이 현재 기준 만 5세 또는 만 6세 범위에 해당하지 않습니다."
+                      : error === "duplicate-guardian-child"
+                        ? "같은 휴대폰 번호와 같은 아동 이름이 이미 등록되어 있습니다. 아동 이름을 구분해서 다시 입력해 주세요."
               : "세션 정보가 없어서 처음부터 다시 시작해 주세요."}
           </div>
         ) : null}
 
-        <form action={createSession} className="mt-6 space-y-4">
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">아동 이름 또는 식별명</span>
-            <input
-              name="childLabel"
-              required
-              minLength={1}
-              className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
-              placeholder="예: 민서"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">보호자 이름</span>
-            <input
-              name="guardianName"
-              className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
-              placeholder="예: 김보호"
-            />
-          </label>
-
-          <label className="block">
-            <span className="mb-2 block text-sm font-semibold">관계</span>
-            <input
-              name="guardianRelationship"
-              className="w-full rounded-[1rem] border border-[var(--line)] bg-white px-4 py-3 text-sm"
-              placeholder="예: 어머니"
-            />
-          </label>
-
-          <fieldset>
-            <legend className="mb-2 text-sm font-semibold">연령 선택</legend>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="rounded-[1rem] border border-[var(--line)] bg-white px-4 py-4">
-                <input type="radio" name="ageYears" value="5" defaultChecked />
-                <span className="ml-3 text-sm font-semibold">만 5세</span>
-              </label>
-              <label className="rounded-[1rem] border border-[var(--line)] bg-white px-4 py-4">
-                <input type="radio" name="ageYears" value="6" />
-                <span className="ml-3 text-sm font-semibold">만 6세</span>
-              </label>
-            </div>
-          </fieldset>
-
-          <button
-            type="submit"
-            className="w-full rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[var(--accent)]"
-          >
-            세션 생성 후 오디오 확인으로 이동
-          </button>
-        </form>
+        <ChildInfoForm action={createSession} seoulToday={seoulToday} />
       </section>
     </main>
   );

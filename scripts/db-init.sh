@@ -20,7 +20,11 @@ add_column_if_missing() {
 }
 
 add_column_if_missing "ScreeningSession" "guardianName" "\"guardianName\" TEXT"
+add_column_if_missing "ScreeningSession" "guardianPhone" "\"guardianPhone\" TEXT"
 add_column_if_missing "ScreeningSession" "guardianRelationship" "\"guardianRelationship\" TEXT"
+add_column_if_missing "ScreeningSession" "birthYear" "\"birthYear\" INTEGER"
+add_column_if_missing "ScreeningSession" "birthMonth" "\"birthMonth\" INTEGER"
+add_column_if_missing "ScreeningSession" "birthDay" "\"birthDay\" INTEGER"
 add_column_if_missing "ScreeningSession" "consentAcceptedAt" "\"consentAcceptedAt\" DATETIME"
 add_column_if_missing "ScreeningSession" "audioCheckPassed" "\"audioCheckPassed\" BOOLEAN"
 add_column_if_missing "ScreeningSession" "audioCheckCompletedAt" "\"audioCheckCompletedAt\" DATETIME"
@@ -40,6 +44,12 @@ add_column_if_missing "ScreeningModuleAttempt" "provisionalSummary" "\"provision
 add_column_if_missing "ScreeningModuleAttempt" "responseLog" "\"responseLog\" TEXT"
 
 sqlite3 "$DB_PATH" <<'SQL'
+DROP INDEX IF EXISTS "ScreeningSession_guardianPhone_key";
+
+UPDATE "ScreeningSession"
+SET "guardianPhone" = 'legacy-' || substr("id", 1, 8)
+WHERE "guardianPhone" IS NULL OR "guardianPhone" = '';
+
 CREATE TABLE IF NOT EXISTS "ScreeningQualityFlag" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "sessionId" TEXT NOT NULL,

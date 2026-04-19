@@ -31,6 +31,7 @@ async function createSampleSession({
   ageYears,
   childLabel,
   guardianName,
+  guardianPhone,
   guardianRelationship,
   completedModules,
   qualityFlags = [],
@@ -39,6 +40,7 @@ async function createSampleSession({
   ageYears: 5 | 6;
   childLabel: string;
   guardianName: string;
+  guardianPhone?: string;
   guardianRelationship: string;
   completedModules: string[];
   qualityFlags?: Array<{ flagCode: string; note: string }>;
@@ -48,6 +50,7 @@ async function createSampleSession({
     data: {
       childLabel,
       guardianName,
+      guardianPhone: guardianPhone ?? `0109000${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}`,
       guardianRelationship,
       ageYears,
       consentAcceptedAt: new Date(),
@@ -103,24 +106,99 @@ async function createSampleSession({
   return session;
 }
 
+function normalizePhone(raw: string) {
+  return raw.replace(/\D/g, "").slice(0, 11);
+}
+
+function getSeoulTodayParts() {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Seoul",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+
+  const year = Number(parts.find((part) => part.type === "year")?.value ?? "0");
+  const month = Number(parts.find((part) => part.type === "month")?.value ?? "0");
+  const day = Number(parts.find((part) => part.type === "day")?.value ?? "0");
+
+  return { year, month, day };
+}
+
+function getKoreanAgeSnapshot(year: number, month: number, day: number) {
+  const today = getSeoulTodayParts();
+  let ageYears = today.year - year;
+  let ageMonths = today.month - month;
+  const hasHadBirthdayThisMonth = today.day >= day;
+
+  if (!hasHadBirthdayThisMonth) {
+    ageMonths -= 1;
+  }
+
+  if (ageMonths < 0) {
+    ageYears -= 1;
+    ageMonths += 12;
+  }
+
+  return { ageYears, ageMonths };
+}
+
 export async function createSession(formData: FormData) {
   const childLabel = String(formData.get("childLabel") ?? "").trim();
   const guardianName = String(formData.get("guardianName") ?? "").trim();
+  const guardianPhone = normalizePhone(String(formData.get("guardianPhone") ?? "").trim());
   const guardianRelationship = String(
     formData.get("guardianRelationship") ?? "",
   ).trim();
-  const ageYears = Number(formData.get("ageYears") ?? 5);
+  const birthYear = Number(formData.get("birthYear") ?? 0);
+  const birthMonth = Number(formData.get("birthMonth") ?? 0);
+  const birthDay = Number(formData.get("birthDay") ?? 0);
 
   if (!childLabel) {
     redirect("/child-info?error=missing-child-label");
+  }
+
+  if (!guardianPhone) {
+    redirect("/child-info?error=missing-guardian-phone");
+  }
+
+  if (guardianPhone.length !== 11) {
+    redirect("/child-info?error=invalid-guardian-phone");
+  }
+
+  if (!birthYear || !birthMonth || !birthDay) {
+    redirect("/child-info?error=missing-birth-date");
+  }
+
+  const { ageYears } = getKoreanAgeSnapshot(birthYear, birthMonth, birthDay);
+
+  if (ageYears !== 5 && ageYears !== 6) {
+    redirect("/child-info?error=invalid-age-range");
+  }
+
+  const existingSession = await prisma.screeningSession.findFirst({
+    where: {
+      guardianPhone,
+      childLabel,
+    },
+    select: { id: true },
+  });
+
+  if (existingSession) {
+    redirect("/child-info?error=duplicate-guardian-child");
   }
 
   const session = await prisma.screeningSession.create({
     data: {
       childLabel,
       guardianName: guardianName || null,
+      guardianPhone,
       guardianRelationship: guardianRelationship || null,
-      ageYears: ageYears === 6 ? 6 : 5,
+      birthYear,
+      birthMonth,
+      birthDay,
+      ageYears,
       consentAcceptedAt: new Date(),
       currentRoute: "/audio-check",
       lastActiveAt: new Date(),

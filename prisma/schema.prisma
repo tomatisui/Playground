@@ -13,7 +13,11 @@ model ScreeningSession {
   ageYears             Int
   classroomLabel       String?
   guardianName         String?
+  guardianPhone        String
   guardianRelationship String?
+  birthYear            Int?
+  birthMonth           Int?
+  birthDay             Int?
   consentAcceptedAt    DateTime?
   audioCheckPassed     Boolean?
   audioCheckCompletedAt DateTime?

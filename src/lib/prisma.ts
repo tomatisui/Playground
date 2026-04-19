@@ -2,7 +2,7 @@ import path from "node:path";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 import { PrismaClient } from "@/generated/prisma/client";
 
-const PRISMA_CLIENT_SIGNATURE = "screening-session-guardian-fields-v1";
+const PRISMA_CLIENT_SIGNATURE = "screening-session-duplicate-policy-v3";
 
 const globalForPrisma = globalThis as typeof globalThis & {
   prisma?: PrismaClient;
