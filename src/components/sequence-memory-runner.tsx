@@ -7,7 +7,6 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
-import { ChildChoiceCard } from "@/components/child-choice-card";
 import { ChildStageHeader } from "@/components/child-stage-header";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
 import { playFeedbackTone, speakText, wait } from "@/lib/audio-playback";
@@ -29,12 +28,8 @@ type SequenceItem = {
 type SequencePracticeRunnerProps = {
   sessionId: string;
   moduleCode: string;
-  instructionText: string;
-  instructionAudio?: string | null;
-  visibleChoiceCount: number;
   trainingMasteryThreshold: number;
   familiarizationItems: TrainingPoolItem[];
-  recognitionItems: SequenceItem[];
   practiceItems: SequenceItem[];
   initialPracticeRuns: number;
   initialPracticeFailures: number;
@@ -44,9 +39,7 @@ type SequencePracticeRunnerProps = {
 type SequenceModuleRunnerProps = {
   sessionId: string;
   moduleCode: string;
-  instructionText: string;
-  instructionAudio?: string | null;
-  visibleChoiceCount: number;
+  trainingPool: TrainingPoolItem[];
   items: SequenceItem[];
   initialIndex: number;
   initialResponses: string[];
@@ -54,49 +47,234 @@ type SequenceModuleRunnerProps = {
   nextHref: string;
 };
 
-const PRACTICE_BUTTON_INSTRUCTION = "말을 잘 듣고, 들은 순서대로 고르세요";
-const PRACTICE_SEQUENCE_DELAY_MS = 1000;
+type SequenceTone = "practice" | "test";
 
-function buildTargetText(item: SequenceItem) {
-  if ((item.promptSequence?.length ?? 0) > 0) {
-    return item.promptSequence?.join(", ") ?? item.prompt;
+const SEQUENCE_DELAY_MS = 1000;
+
+function getToneClasses(seed: string) {
+  const tones = [
+    "from-rose-100 to-orange-50",
+    "from-amber-100 to-yellow-50",
+    "from-emerald-100 to-teal-50",
+    "from-sky-100 to-cyan-50",
+    "from-violet-100 to-fuchsia-50",
+    "from-pink-100 to-rose-50",
+  ];
+
+  const value = [...seed].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return tones[value % tones.length];
+}
+
+function getSequenceInstructionAudioText(moduleCode: string) {
+  return moduleCode === "M3-R"
+    ? "말을 잘 듣고, 마지막에 들은 것부터 거꾸로 고르세요"
+    : "말을 잘 듣고, 들은 순서대로 고르세요";
+}
+
+function getSequenceGuidanceLines(moduleCode: string) {
+  return moduleCode === "M3-R"
+    ? [
+        "단어 듣기를 눌러 마지막에 들은 것부터 골라요",
+        "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
+        "빈 자리를 다 채우면 선택 완료를 눌러요",
+        "주의: 단어 듣기는 한 번만 나와요",
+      ]
+    : [
+        "단어 듣기를 눌러 들은 순서대로 골라요",
+        "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
+        "빈 자리를 다 채우면 선택 완료를 눌러요",
+        "주의: 단어 듣기는 한 번만 나와요",
+      ];
+}
+
+function getSequencePoolFromItems(items: SequenceItem[], fallbackPool: TrainingPoolItem[]) {
+  if (fallbackPool.length > 0) {
+    return fallbackPool;
   }
 
-  return item.prompt;
+  const entries = new Map<string, TrainingPoolItem>();
+
+  for (const item of items) {
+    item.choices.forEach((choice, index) => {
+      if (!entries.has(choice)) {
+        entries.set(choice, {
+          label: choice,
+          imageKey: item.choiceImageKeys?.[index],
+        });
+      }
+    });
+  }
+
+  return [...entries.values()];
+}
+
+async function playSequencePrompt(moduleCode: string, item: SequenceItem) {
+  const instructionResult = await speakText(getSequenceInstructionAudioText(moduleCode));
+
+  if (instructionResult.status !== "ended") {
+    return { consumed: false };
+  }
+
+  const sequence =
+    item.promptSequence && item.promptSequence.length > 0
+      ? item.promptSequence
+      : [item.prompt];
+
+  let consumed = false;
+
+  for (const spokenItem of sequence) {
+    await wait(SEQUENCE_DELAY_MS);
+    const spokenResult = await speakText(spokenItem);
+
+    if (!consumed && spokenResult.status === "ended") {
+      consumed = true;
+    }
+
+    if (spokenResult.status !== "ended") {
+      return { consumed };
+    }
+  }
+
+  return { consumed };
+}
+
+function SequenceCard({
+  label,
+  imageKey,
+  onClick,
+  disabled,
+  tone,
+}: {
+  label: string;
+  imageKey?: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  tone: SequenceTone;
+}) {
+  const toneClasses = getToneClasses(imageKey || label);
+  const baseClasses =
+    "flex min-h-[5.5rem] w-full items-center gap-3 rounded-[1.1rem] px-4 py-4 text-left transition";
+  const toneClassesByMode =
+    tone === "test"
+      ? "border border-[rgba(140,77,45,0.26)] bg-white/95"
+      : "border border-[rgba(201,111,59,0.22)] bg-white/95";
+  const content = (
+    <>
+      <div
+        aria-hidden="true"
+        className={`relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] bg-gradient-to-br ${toneClasses}`}
+      >
+        <div className="h-6 w-6 rounded-full bg-white/80" />
+        <div className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-white/60" />
+      </div>
+      <p className="text-base font-semibold text-[var(--foreground)]">{label}</p>
+    </>
+  );
+
+  if (!onClick) {
+    return <div className={`${baseClasses} ${toneClassesByMode}`}>{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={`${baseClasses} ${toneClassesByMode} disabled:opacity-50`}
+    >
+      {content}
+    </button>
+  );
 }
 
 function AnswerSlots({
   count,
+  pool,
   selected,
   onRemove,
   disabled,
+  tone,
 }: {
   count: number;
+  pool: TrainingPoolItem[];
   selected: string[];
   onRemove: (index: number) => void;
   disabled?: boolean;
+  tone: SequenceTone;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+    <div className="flex flex-wrap gap-3">
       {Array.from({ length: count }, (_, index) => {
         const value = selected[index];
+        const selectedItem = value
+          ? pool.find((item) => item.label === value) ?? { label: value }
+          : null;
 
         return (
-          <button
-            key={index}
-            type="button"
-            onClick={() => value && onRemove(index)}
-            disabled={disabled || !value}
-            className={`rounded-[1rem] border px-3 py-3 text-left text-sm transition ${
-              value
-                ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)] text-[var(--foreground)]"
-                : "border-2 border-dashed border-[rgba(201,111,59,0.42)] bg-[rgba(201,111,59,0.06)] text-[var(--foreground)]"
-            } disabled:opacity-50`}
+          <div
+            key={`slot-${index}`}
+            className="min-w-[7.25rem] flex-1 basis-[7.25rem] sm:min-w-[8rem] sm:basis-[8rem]"
           >
-            {value || `빈 자리 ${index + 1}`}
-          </button>
+            {selectedItem ? (
+              <SequenceCard
+                label={selectedItem.label}
+                imageKey={selectedItem.imageKey}
+                onClick={() => onRemove(index)}
+                disabled={disabled}
+                tone={tone}
+              />
+            ) : (
+              <div
+                className={`flex min-h-[5.5rem] w-full items-center rounded-[1.1rem] border-2 border-dashed px-4 py-4 text-left text-base font-semibold ${
+                  tone === "test"
+                    ? "border-[rgba(140,77,45,0.5)] bg-[rgba(140,77,45,0.08)] text-[var(--foreground)]"
+                    : "border-[rgba(201,111,59,0.44)] bg-[rgba(201,111,59,0.06)] text-[var(--foreground)]"
+                }`}
+              >
+                빈 자리 {index + 1}
+              </div>
+            )}
+          </div>
         );
       })}
+    </div>
+  );
+}
+
+function ChoiceGrid({
+  pool,
+  selected,
+  onSelect,
+  disabled,
+  tone,
+  matched = [],
+}: {
+  pool: TrainingPoolItem[];
+  selected: string[];
+  onSelect: (label: string) => void;
+  disabled?: boolean;
+  tone: SequenceTone;
+  matched?: string[];
+}) {
+  const visibleChoices =
+    matched.length > 0 ? pool : pool.filter((choice) => !selected.includes(choice.label));
+
+  return (
+    <div className="mt-4 flex flex-wrap gap-3">
+      {visibleChoices.map((choice) => (
+        <div
+          key={choice.label}
+          className="min-w-[7.25rem] flex-1 basis-[7.25rem] sm:min-w-[8rem] sm:basis-[8rem]"
+        >
+          <SequenceCard
+            label={choice.label}
+            imageKey={choice.imageKey}
+            onClick={() => onSelect(choice.label)}
+            disabled={disabled || matched.includes(choice.label)}
+            tone={tone}
+          />
+        </div>
+      ))}
     </div>
   );
 }
@@ -124,8 +302,8 @@ export function SequencePracticeRunner({
   const [recognitionSkipped, setRecognitionSkipped] = useState(false);
   const [practiceSelections, setPracticeSelections] = useState<Record<string, string[]>>({});
   const [practiceStepIndex, setPracticeStepIndex] = useState(0);
-  const [practicePlaying, setPracticePlaying] = useState(false);
-  const [practiceHasPlayed, setPracticeHasPlayed] = useState(false);
+  const [practicePlayingItemId, setPracticePlayingItemId] = useState("");
+  const [practicePlayedItemIds, setPracticePlayedItemIds] = useState<string[]>([]);
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
@@ -138,10 +316,23 @@ export function SequencePracticeRunner({
   });
 
   const activePracticeItem = practiceItems[practiceStepIndex] ?? null;
+  const practicePlaying = activePracticeItem
+    ? practicePlayingItemId === activePracticeItem.id
+    : false;
+  const practiceHasPlayed = activePracticeItem
+    ? practicePlayedItemIds.includes(activePracticeItem.id)
+    : false;
+  const practiceInstructionLine =
+    moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
+  const testInstructionLine = getChildInstructionLine(moduleCode);
+  const allRecognitionMatched = recognitionMatched.length === familiarizationItems.length;
+  const practiceGuidanceLines = getSequenceGuidanceLines(moduleCode);
 
-  function resetPracticePlayback() {
-    setPracticeHasPlayed(false);
-    setPracticePlaying(false);
+  function resetPracticePlayback(clearPlayed = false) {
+    setPracticePlayingItemId("");
+    if (clearPlayed) {
+      setPracticePlayedItemIds([]);
+    }
   }
 
   async function playFamiliarizationLabel(label: string) {
@@ -240,39 +431,32 @@ export function SequencePracticeRunner({
   }
 
   async function playPracticeSequence() {
-    if (!activePracticeItem || practicePlaying) {
+    if (!activePracticeItem || practicePlaying || practiceHasPlayed) {
       return;
     }
 
-    setPracticePlaying(true);
-    setPracticeHasPlayed(true);
+    setPracticePlayingItemId(activePracticeItem.id);
 
     try {
-      const instructionResult = await speakText(PRACTICE_BUTTON_INSTRUCTION);
+      const result = await playSequencePrompt(moduleCode, activePracticeItem);
 
-      if (instructionResult.status !== "ended") {
-        return;
-      }
-
-      const sequence =
-        activePracticeItem.promptSequence && activePracticeItem.promptSequence.length > 0
-          ? activePracticeItem.promptSequence
-          : [activePracticeItem.prompt];
-
-      for (const spokenItem of sequence) {
-        await wait(PRACTICE_SEQUENCE_DELAY_MS);
-        await speakText(spokenItem);
+      if (result.consumed) {
+        setPracticePlayedItemIds((value) =>
+          value.includes(activePracticeItem.id) ? value : [...value, activePracticeItem.id],
+        );
       }
     } finally {
-      setPracticePlaying(false);
+      setPracticePlayingItemId("");
     }
   }
 
   async function submitPracticeRound() {
-    if (!practiceItems.every((item) => {
-      const selected = practiceSelections[item.id] ?? [];
-      return selected.length === (item.promptSequence?.length ?? 1);
-    })) {
+    if (
+      !practiceItems.every((item) => {
+        const selected = practiceSelections[item.id] ?? [];
+        return selected.length === (item.promptSequence?.length ?? 1);
+      })
+    ) {
       return;
     }
 
@@ -331,28 +515,23 @@ export function SequencePracticeRunner({
       setRecognitionHasPlayed(false);
       setRecognitionSkipped(false);
       setPracticeSelections({});
+      resetPracticePlayback(true);
     } else {
       setPhase("done");
     }
   }
+
   const currentPracticeReady = activePracticeItem
     ? (practiceSelections[activePracticeItem.id] ?? []).length ===
       (activePracticeItem.promptSequence?.length ?? 1)
     : false;
-  const practiceStepCompleted = activePracticeItem
-    ? (practiceSelections[activePracticeItem.id] ?? []).length ===
-      (activePracticeItem.promptSequence?.length ?? 1)
-    : false;
+  const practiceStepCompleted = currentPracticeReady;
   const allPracticeCompleted = practiceItems.every(
     (item) => (practiceSelections[item.id] ?? []).length === (item.promptSequence?.length ?? 1),
   );
   const readyForTest = phase === "done" && roundState === "passed";
   const hasPracticeStateMismatch =
     phase === "practice" && (!activePracticeItem || practiceStepIndex >= practiceItems.length);
-  const practiceInstructionLine =
-    moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
-  const testInstructionLine = getChildInstructionLine(moduleCode);
-  const allRecognitionMatched = recognitionMatched.length === familiarizationItems.length;
 
   function submitPracticeStep() {
     if (!activePracticeItem || !currentPracticeReady || submitting) {
@@ -396,19 +575,15 @@ export function SequencePracticeRunner({
               replayLabel="안내 음성 듣기"
             />
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {familiarizationItems.map((item) => (
-              <ChildChoiceCard
-                key={item.label}
-                label={item.label}
-                imageKey={item.imageKey}
-                onClick={() => {
-                  void playFamiliarizationLabel(item.label);
-                }}
-                disabled={Boolean(playingFamiliarizationKey) || familiarizationGuidance.isPlaying}
-              />
-            ))}
-          </div>
+          <ChoiceGrid
+            pool={familiarizationItems}
+            selected={[]}
+            onSelect={(label) => {
+              void playFamiliarizationLabel(label);
+            }}
+            disabled={Boolean(playingFamiliarizationKey) || familiarizationGuidance.isPlaying}
+            tone="practice"
+          />
           <button
             type="button"
             onClick={() => setPhase("recognition")}
@@ -439,25 +614,16 @@ export function SequencePracticeRunner({
               replayLabel="단어 듣기"
             />
           </div>
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {familiarizationItems.map((choice) => (
-              <ChildChoiceCard
-                key={choice.label}
-                label={choice.label}
-                imageKey={choice.imageKey}
-                onClick={() => {
-                  void handleRecognitionChoice(choice.label);
-                }}
-                selected={recognitionMatched.includes(choice.label)}
-                disabled={
-                  recognitionPlaying ||
-                  recognitionSkipped ||
-                  !recognitionCurrentTarget ||
-                  recognitionMatched.includes(choice.label)
-                }
-              />
-            ))}
-          </div>
+          <ChoiceGrid
+            pool={familiarizationItems}
+            selected={[]}
+            onSelect={(label) => {
+              void handleRecognitionChoice(label);
+            }}
+            disabled={recognitionPlaying || recognitionSkipped || !recognitionCurrentTarget}
+            matched={recognitionMatched}
+            tone="practice"
+          />
           {recognitionWrongCount > 0 ? (
             <p className="text-xs leading-6 text-[var(--muted)]">
               틀린 횟수: {recognitionWrongCount}
@@ -471,7 +637,7 @@ export function SequencePracticeRunner({
           <button
             type="button"
             onClick={() => {
-              resetPracticePlayback();
+              resetPracticePlayback(true);
               setPracticeStepIndex(0);
               setPhase("practice");
             }}
@@ -502,7 +668,7 @@ export function SequencePracticeRunner({
               <button
                 type="button"
                 onClick={() => {
-                  resetPracticePlayback();
+                  resetPracticePlayback(true);
                   setPracticeStepIndex(0);
                   setPhase("practice");
                 }}
@@ -516,18 +682,22 @@ export function SequencePracticeRunner({
       ) : null}
 
       {phase === "practice" && activePracticeItem ? (
-        <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+        <article className="space-y-4 rounded-[1.4rem] border border-[rgba(201,111,59,0.22)] bg-[rgba(255,249,244,0.96)] p-4">
           <ChildStageHeader
             stageLabel="연습"
             instructionLine={practiceInstructionLine}
             progressLabel={`${practiceStepIndex + 1}/${practiceItems.length}`}
           />
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex items-start justify-between gap-3">
             <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
-              <p>단어 듣기를 눌러 들은 순서대로 골라요</p>
-              <p>그림을 바꾸고 싶으면 채워진 그림을 눌러요</p>
-              <p>빈 자리를 다 채우면 선택 완료를 눌러요</p>
-              <p className="font-semibold text-amber-800">주의: 단어 듣기는 한 번만 나와요</p>
+              {practiceGuidanceLines.map((line) => (
+                <p
+                  key={line}
+                  className={line.includes("주의") ? "font-semibold text-amber-800" : undefined}
+                >
+                  {line}
+                </p>
+              ))}
             </div>
             <ChildAudioGuidanceControls
               onPlay={playPracticeSequence}
@@ -539,27 +709,22 @@ export function SequencePracticeRunner({
             />
           </div>
 
-          <div className="mt-4">
-            <AnswerSlots
-              count={activePracticeItem.promptSequence?.length ?? 1}
-              selected={practiceSelections[activePracticeItem.id] ?? []}
-              onRemove={(index) => removeSelection(activePracticeItem, index)}
-              disabled={practicePlaying}
-            />
-          </div>
+          <AnswerSlots
+            count={activePracticeItem.promptSequence?.length ?? 1}
+            pool={familiarizationItems}
+            selected={practiceSelections[activePracticeItem.id] ?? []}
+            onRemove={(index) => removeSelection(activePracticeItem, index)}
+            disabled={practicePlaying}
+            tone="practice"
+          />
 
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {familiarizationItems.map((choice) => (
-              <ChildChoiceCard
-                key={choice.label}
-                label={choice.label}
-                imageKey={choice.imageKey}
-                onClick={() => appendSelection(activePracticeItem, choice.label)}
-                selected={(practiceSelections[activePracticeItem.id] ?? []).includes(choice.label)}
-                disabled={practicePlaying}
-              />
-            ))}
-          </div>
+          <ChoiceGrid
+            pool={familiarizationItems}
+            selected={practiceSelections[activePracticeItem.id] ?? []}
+            onSelect={(label) => appendSelection(activePracticeItem, label)}
+            disabled={practicePlaying}
+            tone="practice"
+          />
 
           <button
             type="button"
@@ -567,11 +732,7 @@ export function SequencePracticeRunner({
             disabled={!currentPracticeReady || submitting || practicePlaying}
             className="mt-4 w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {submitting
-              ? "저장 중..."
-              : practiceStepIndex === practiceItems.length - 1
-                ? "선택 완료"
-                : "선택 완료"}
+            {submitting ? "저장 중..." : "선택 완료"}
           </button>
           <p className="mt-3 text-xs leading-6 text-[var(--muted)]">
             {practiceStepCompleted
@@ -585,10 +746,7 @@ export function SequencePracticeRunner({
 
       {phase === "done" ? (
         <div className="space-y-4">
-          <ChildStageHeader
-            stageLabel="검사"
-            instructionLine={testInstructionLine}
-          />
+          <ChildStageHeader stageLabel="검사" instructionLine={testInstructionLine} emphasis="strong" />
           {roundState === "failed" ? (
             <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
               먼저 들어보기 또는 연습에서 아직 어려움이 보였습니다.
@@ -616,7 +774,7 @@ export function SequencePracticeRunner({
                   setRecognitionHasPlayed(false);
                   setRecognitionSkipped(false);
                   setPracticeSelections({});
-                  resetPracticePlayback();
+                  resetPracticePlayback(true);
                   setPracticeStepIndex(0);
                   setRoundState("idle");
                   router.refresh();
@@ -652,9 +810,7 @@ export function SequencePracticeRunner({
 export function SequenceModuleRunner({
   sessionId,
   moduleCode,
-  instructionText,
-  instructionAudio,
-  visibleChoiceCount,
+  trainingPool,
   items,
   initialIndex,
   initialResponses,
@@ -668,32 +824,23 @@ export function SequenceModuleRunner({
   const [currentSelection, setCurrentSelection] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [playingItemId, setPlayingItemId] = useState("");
+  const [playedItemIds, setPlayedItemIds] = useState<string[]>([]);
   const currentItem = items[currentIndex];
   const isResume = initialIndex > 0 || initialResponses.length > 0;
   const testInstructionLine = getChildInstructionLine(moduleCode);
-  const testGuidanceLines =
-    moduleCode === "M3-R"
-      ? [
-          "단어 듣기를 눌러 마지막에 들은 것부터 골라요",
-          "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
-          "빈 자리를 다 채우면 선택 완료를 눌러요",
-        ]
-      : [
-          "단어 듣기를 눌러 들은 순서대로 골라요",
-          "그림을 바꾸고 싶으면 채워진 그림을 눌러요",
-          "빈 자리를 다 채우면 선택 완료를 눌러요",
-        ];
-  const guidance = useChildAudioGuidance({
-    instructionText,
-    instructionAudio,
-    stimulusText: currentItem ? buildTargetText(currentItem) : undefined,
-    autoplayKey: currentItem ? `${moduleCode}-${currentItem.id}` : `${moduleCode}-complete`,
-  });
+  const testGuidanceLines = getSequenceGuidanceLines(moduleCode);
+  const choicePool = useMemo(
+    () => getSequencePoolFromItems(items, trainingPool),
+    [items, trainingPool],
+  );
 
   const currentProgress = useMemo(
     () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
     [currentIndex, items.length],
   );
+  const testPlaying = currentItem ? playingItemId === currentItem.id : false;
+  const testHasPlayedOnce = currentItem ? playedItemIds.includes(currentItem.id) : false;
 
   function appendSelection(choice: string) {
     if (!currentItem) {
@@ -710,6 +857,26 @@ export function SequenceModuleRunner({
 
   function removeSelection(index: number) {
     setCurrentSelection((value) => value.filter((_, slotIndex) => slotIndex !== index));
+  }
+
+  async function playTestSequence() {
+    if (!currentItem || testPlaying || testHasPlayedOnce) {
+      return;
+    }
+
+    setPlayingItemId(currentItem.id);
+
+    try {
+      const result = await playSequencePrompt(moduleCode, currentItem);
+
+      if (result.consumed) {
+        setPlayedItemIds((value) =>
+          value.includes(currentItem.id) ? value : [...value, currentItem.id],
+        );
+      }
+    } finally {
+      setPlayingItemId("");
+    }
   }
 
   async function submitCurrentAnswer() {
@@ -815,46 +982,49 @@ export function SequenceModuleRunner({
         </div>
       ) : null}
 
-      <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
-        <div className="flex items-center justify-between gap-3">
+      <article className="rounded-[1.4rem] border border-[rgba(140,77,45,0.28)] bg-[rgba(252,246,240,0.98)] p-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
-            <p className="text-sm font-semibold">문항 {currentIndex + 1}</p>
+            <p className="text-sm font-semibold text-[var(--accent-strong)]">문항 {currentIndex + 1}</p>
             <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
               {testGuidanceLines.map((line) => (
-                <p key={line}>{line}</p>
+                <p
+                  key={line}
+                  className={line.includes("주의") ? "font-semibold text-[var(--accent-strong)]" : undefined}
+                >
+                  {line}
+                </p>
               ))}
             </div>
           </div>
           <ChildAudioGuidanceControls
-            onPlay={guidance.playGuidance}
-            isPlaying={guidance.isPlaying}
-            hasPlayedOnce={guidance.hasPlayedOnce}
+            onPlay={playTestSequence}
+            isPlaying={testPlaying}
+            hasPlayedOnce={testHasPlayedOnce}
             primaryLabel="단어 듣기"
             replayLabel="단어 듣기"
+            disableAfterPlayed
           />
         </div>
 
         <div className="mt-4">
           <AnswerSlots
             count={currentItem.promptSequence?.length ?? 1}
+            pool={choicePool}
             selected={currentSelection}
             onRemove={removeSelection}
-            disabled={guidance.isPlaying || saving}
+            disabled={testPlaying || saving}
+            tone="test"
           />
         </div>
 
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {currentItem.choices.slice(0, visibleChoiceCount).map((choice, index) => (
-            <ChildChoiceCard
-              key={choice}
-              label={choice}
-              imageKey={currentItem.choiceImageKeys?.[index]}
-              onClick={() => appendSelection(choice)}
-              selected={currentSelection.includes(choice)}
-              disabled={guidance.isPlaying || saving}
-            />
-          ))}
-        </div>
+        <ChoiceGrid
+          pool={choicePool}
+          selected={currentSelection}
+          onSelect={appendSelection}
+          disabled={testPlaying || saving}
+          tone="test"
+        />
 
         <div className="mt-4">
           <button
@@ -863,12 +1033,11 @@ export function SequenceModuleRunner({
               void submitCurrentAnswer();
             }}
             disabled={
-              saving ||
-              currentSelection.length !== (currentItem.promptSequence?.length ?? 1)
+              saving || currentSelection.length !== (currentItem.promptSequence?.length ?? 1)
             }
-            className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+            className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
           >
-            {saving ? "저장 중..." : "현재 문항 저장"}
+            {saving ? "저장 중..." : "선택 완료"}
           </button>
         </div>
       </article>

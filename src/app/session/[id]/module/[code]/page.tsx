@@ -136,9 +136,7 @@ export default async function ModulePage({
               <SequenceModuleRunner
                 sessionId={session.id}
                 moduleCode={definition.moduleCode}
-                instructionText={definition.instructionText ?? definition.instructions ?? ""}
-                instructionAudio={definition.instructionAudio}
-                visibleChoiceCount={definition.visibleChoiceCount ?? 6}
+                trainingPool={definition.trainingPool ?? []}
                 items={definition.testItems ?? []}
                 initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
                 initialResponses={parseResponseLog(attempt?.responseLog ?? null)}

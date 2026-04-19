@@ -92,14 +92,10 @@ export default async function PracticePage({
                 <SequencePracticeRunner
                   sessionId={session.id}
                   moduleCode={definition.moduleCode}
-                  instructionText={definition.instructionText ?? definition.instructions ?? ""}
-                  instructionAudio={definition.instructionAudio}
-                  visibleChoiceCount={definition.visibleChoiceCount ?? 6}
                   trainingMasteryThreshold={
                     definition.preLearning?.trainingMasteryThreshold ?? 0.5
                   }
                   familiarizationItems={definition.trainingPool ?? []}
-                  recognitionItems={definition.preLearning?.recognitionItems ?? []}
                   practiceItems={definition.practiceItems ?? []}
                   initialPracticeRuns={attempt?.practiceRuns ?? 0}
                   initialPracticeFailures={attempt?.practiceFailures ?? 0}
