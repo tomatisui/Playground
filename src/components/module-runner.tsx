@@ -77,7 +77,7 @@ const M4_SECTION_LABELS: Record<M4SectionGroup, string> = {
   pitch_pattern: "높낮이 검사",
 };
 const M4_EXPLANATION_TEXT =
-  "소리를 잘 듣고 같은 걸 고르세요. 맞는 걸 고르고, 선택 완료 버튼을 누르면 다음으로 넘어갑니다.";
+  "소리를 잘 듣고 같은 걸 고르세요. 맞는 걸 고르고 선택 완료 버튼을 누르세요.";
 
 function normalizeM4LevelItems(levelItems: ModuleItem[]) {
   const sorted = [...levelItems].sort((left, right) => left.id.localeCompare(right.id));
@@ -191,14 +191,42 @@ function getM4CurrentItem(plan: M4RuntimePlan, state: M4DerivedState) {
   return level.items[state.attemptIndex] ?? null;
 }
 
-function getM4ChoiceSet(currentItem: ModuleItem, sectionItems: ModuleItem[]): M4Choice[] {
+function hashString(value: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function shuffleM4Choices(choices: M4Choice[], seedKey: string) {
+  const shuffled = [...choices];
+  let seed = hashString(seedKey);
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const swapIndex = seed % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
+function getM4ChoiceSet(
+  currentItem: ModuleItem,
+  sectionItems: ModuleItem[],
+  sessionId: string,
+): M4Choice[] {
   const explicitChoices = currentItem.choices.map((choice, index) => ({
     value: choice,
     imageKey: currentItem.choiceImageKeys?.[index],
   }));
 
   if (explicitChoices.length >= 4) {
-    return explicitChoices.slice(0, 4);
+    return shuffleM4Choices(explicitChoices.slice(0, 4), `${sessionId}:${currentItem.id}`);
   }
 
   const levelLength =
@@ -235,7 +263,10 @@ function getM4ChoiceSet(currentItem: ModuleItem, sectionItems: ModuleItem[]): M4
     (choice) => choice.value !== currentItem.correctAnswer,
   );
 
-  return [correctChoice, ...distractors].slice(0, 4);
+  return shuffleM4Choices(
+    [correctChoice, ...distractors].slice(0, 4),
+    `${sessionId}:${currentItem.id}`,
+  );
 }
 
 function getM4AccuracySummary(plan: M4RuntimePlan, responses: string[]) {
@@ -355,8 +386,8 @@ export function ModuleRunner({
     }
 
     const sectionItems = m4CurrentSection.levels.flatMap((level) => level.items);
-    return getM4ChoiceSet(m4CurrentItem, sectionItems);
-  }, [m4CurrentItem, m4CurrentSection]);
+    return getM4ChoiceSet(m4CurrentItem, sectionItems, sessionId);
+  }, [m4CurrentItem, m4CurrentSection, sessionId]);
 
   const currentProgress = useMemo(
     () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
