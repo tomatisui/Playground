@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
@@ -33,6 +33,15 @@ type PracticeRunnerProps = {
   moduleHref: string;
 };
 
+type M4TutorialPhase =
+  | "intro"
+  | "pattern"
+  | "choices"
+  | "choice-selected"
+  | "complete";
+
+const M4_TUTORIAL_TEXT = "소리를 잘 듣고 같은 걸 고르면 돼요.";
+
 export function PracticeRunner({
   sessionId,
   moduleCode,
@@ -55,6 +64,10 @@ export function PracticeRunner({
   const [errorMessage, setErrorMessage] = useState("");
   const [m4Playing, setM4Playing] = useState(false);
   const [m4SoundPlayCount, setM4SoundPlayCount] = useState(0);
+  const [showM4Tutorial, setShowM4Tutorial] = useState(moduleCode === "M4");
+  const [m4TutorialPhase, setM4TutorialPhase] = useState<M4TutorialPhase>("intro");
+  const [m4TutorialChoiceVisible, setM4TutorialChoiceVisible] = useState(false);
+  const [m4TutorialSelected, setM4TutorialSelected] = useState("");
   const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
   const isM4 = moduleCode === "M4";
   const guidance = useChildAudioGuidance({
@@ -88,11 +101,76 @@ export function PracticeRunner({
     m4SoundPlayCount % 2 === 0
       ? m4LengthItems[Math.floor(m4SoundPlayCount / 2)] ?? m4LengthItems[0]
       : m4PitchItems[Math.floor(m4SoundPlayCount / 2)] ?? m4PitchItems[0];
+  const m4TutorialItem = m4LengthItems[0] ?? items[0];
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
     [answers, items],
   );
+
+  useEffect(() => {
+    if (!isM4 || !showM4Tutorial || !m4TutorialItem) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const runTutorial = async () => {
+      setM4TutorialPhase("intro");
+      setM4TutorialChoiceVisible(false);
+      setM4TutorialSelected("");
+
+      await wait(600);
+      if (cancelled) return;
+
+      await speakText(M4_TUTORIAL_TEXT);
+      if (cancelled) return;
+
+      setM4TutorialPhase("pattern");
+
+      const segments =
+        m4TutorialItem.promptSequence && m4TutorialItem.promptSequence.length > 0
+          ? m4TutorialItem.promptSequence
+          : m4TutorialItem.prompt.split("-").map((segment) => segment.trim());
+
+      for (let index = 0; index < segments.length; index += 1) {
+        const result = await playPattern(segments[index] ?? "", {
+          segmentDurationScale: 2,
+          segmentGapMs: 240,
+        });
+
+        if (cancelled || result.status !== "played") {
+          return;
+        }
+
+        if (index < segments.length - 1) {
+          await wait(1000);
+        }
+      }
+
+      if (cancelled) return;
+
+      setM4TutorialChoiceVisible(true);
+      setM4TutorialPhase("choices");
+      await wait(900);
+
+      if (cancelled) return;
+
+      setM4TutorialSelected(m4TutorialItem.correctAnswer);
+      setM4TutorialPhase("choice-selected");
+      await wait(900);
+
+      if (cancelled) return;
+
+      setM4TutorialPhase("complete");
+    };
+
+    void runTutorial();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isM4, m4TutorialItem, showM4Tutorial]);
 
   async function playM4Instruction() {
     if (m4Playing) {
@@ -173,6 +251,103 @@ export function PracticeRunner({
           )}
         </div>
         <span>{choice}</span>
+      </div>
+    );
+  }
+
+  if (isM4 && showM4Tutorial && m4TutorialItem) {
+    const tutorialChoices = m4TutorialItem.choices.slice(0, 4);
+
+    return (
+      <div className="space-y-4">
+        <ChildStageHeader
+          stageLabel="연습"
+          instructionLine="소리를 듣고 같은 걸 골라요"
+        />
+
+        <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+          <div className="flex items-start justify-between gap-4">
+            <p className="text-sm leading-7 text-[var(--muted)]">{M4_TUTORIAL_TEXT}</p>
+            <button
+              type="button"
+              onClick={() => setShowM4Tutorial(false)}
+              className="shrink-0 rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold"
+            >
+              튜토리얼 건너뛰기
+            </button>
+          </div>
+        </div>
+
+        <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold">튜토리얼</p>
+            <button
+              type="button"
+              className="rounded-[1.2rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white"
+            >
+              소리 듣기
+            </button>
+          </div>
+
+          <div className="mt-4 rounded-[1rem] border border-[rgba(201,111,59,0.16)] bg-[rgba(201,111,59,0.06)] p-4">
+            {m4TutorialChoiceVisible ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {tutorialChoices.map((choice) => {
+                  const isCorrect = choice === m4TutorialItem.correctAnswer;
+                  const isSelected = m4TutorialSelected === choice;
+                  const showFinger =
+                    (m4TutorialPhase === "choices" && isCorrect) ||
+                    (m4TutorialPhase === "choice-selected" && isCorrect);
+
+                  return (
+                    <div key={choice} className="relative">
+                      {showFinger ? (
+                        <div
+                          className={`pointer-events-none absolute -right-2 -top-4 text-5xl transition duration-300 ${
+                            m4TutorialPhase === "choice-selected"
+                              ? "translate-y-2 scale-90"
+                              : "animate-bounce"
+                          }`}
+                        >
+                          👆
+                        </div>
+                      ) : null}
+                      <div
+                        className={`rounded-[1rem] border px-4 py-3 text-left text-sm ${
+                          isSelected
+                            ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
+                            : "border-[var(--line)] bg-white"
+                        } min-h-28`}
+                      >
+                        {renderM4Choice(choice)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-[1rem] border border-dashed border-[var(--line)] bg-white px-4 py-8 text-center text-sm leading-7 text-[var(--muted)]">
+                소리를 먼저 듣고 보기가 나타나요.
+              </div>
+            )}
+
+            <div className="relative mt-4">
+              {m4TutorialPhase === "complete" ? (
+                <div className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-5xl animate-bounce">
+                  👆
+                </div>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => setShowM4Tutorial(false)}
+                disabled={m4TutorialPhase !== "complete"}
+                className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                연습 시작
+              </button>
+            </div>
+          </div>
+        </article>
       </div>
     );
   }
