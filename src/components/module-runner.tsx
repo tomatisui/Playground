@@ -72,12 +72,18 @@ const M4_LEVEL_ORDER = [2, 3, 4, 5];
 const M4_PATTERN_ELEMENT_GAP_MS = 1000;
 const M4_PATTERN_DURATION_SCALE = 2;
 const M4_EXPLANATION_AUTOPLAY_DELAY_MS = 1000;
+const M4_PATTERN_START_DELAY_MS = 1000;
 const M4_SECTION_LABELS: Record<M4SectionGroup, string> = {
   length_pattern: "길이 검사",
   pitch_pattern: "높낮이 검사",
 };
 const M4_EXPLANATION_TEXT =
   "소리를 잘 듣고 같은 걸 고른 후 선택 완료 버튼을 누르세요.";
+const M4_TTS_OPTIONS = {
+  rate: 0.92,
+  pitch: 0.96,
+  preferLangPrefix: "ko",
+} as const;
 
 function normalizeM4LevelItems(levelItems: ModuleItem[]) {
   const sorted = [...levelItems].sort((left, right) => left.id.localeCompare(right.id));
@@ -407,7 +413,7 @@ export function ModuleRunner({
 
         setM4Playing(true);
         try {
-          await speakText(M4_EXPLANATION_TEXT);
+          await speakText(M4_EXPLANATION_TEXT, M4_TTS_OPTIONS);
         } finally {
           setM4Playing(false);
           setM4AutoplayDone(true);
@@ -427,7 +433,7 @@ export function ModuleRunner({
 
     setM4Playing(true);
     try {
-      await speakText(M4_EXPLANATION_TEXT);
+      await speakText(M4_EXPLANATION_TEXT, M4_TTS_OPTIONS);
     } finally {
       setM4Playing(false);
       setM4AutoplayDone(true);
@@ -447,6 +453,8 @@ export function ModuleRunner({
         m4CurrentItem.promptSequence && m4CurrentItem.promptSequence.length > 0
           ? m4CurrentItem.promptSequence
           : m4CurrentItem.prompt.split("-").map((segment) => segment.trim());
+
+      await wait(M4_PATTERN_START_DELAY_MS);
 
       for (let index = 0; index < segments.length; index += 1) {
         const result = await playPattern(segments[index] ?? "", {

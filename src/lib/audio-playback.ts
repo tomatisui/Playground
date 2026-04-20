@@ -14,7 +14,17 @@ export type SpeechPlaybackResult = {
 
 export async function speakText(
   text: string,
-  { timeoutMs = SPEECH_PLAYBACK_TIMEOUT_MS }: { timeoutMs?: number } = {},
+  {
+    timeoutMs = SPEECH_PLAYBACK_TIMEOUT_MS,
+    rate = 1,
+    pitch = 1,
+    preferLangPrefix,
+  }: {
+    timeoutMs?: number;
+    rate?: number;
+    pitch?: number;
+    preferLangPrefix?: string;
+  } = {},
 ): Promise<SpeechPlaybackResult> {
   if (!("speechSynthesis" in window) || typeof SpeechSynthesisUtterance === "undefined") {
     return { status: "unavailable" };
@@ -22,6 +32,23 @@ export async function speakText(
 
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "ko-KR";
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+
+  if (preferLangPrefix) {
+    try {
+      const matchingVoice = window
+        .speechSynthesis
+        .getVoices()
+        .find((voice) => voice.lang.toLowerCase().startsWith(preferLangPrefix.toLowerCase()));
+
+      if (matchingVoice) {
+        utterance.voice = matchingVoice;
+      }
+    } catch {
+      // Ignore voice lookup issues and fall back to the browser default.
+    }
+  }
 
   return await new Promise<SpeechPlaybackResult>((resolve) => {
     let settled = false;
