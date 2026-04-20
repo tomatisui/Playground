@@ -54,7 +54,6 @@ export function PracticeRunner({
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [m4Playing, setM4Playing] = useState(false);
-  const [m4HasPlayedIntro, setM4HasPlayedIntro] = useState(false);
   const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
   const isM4 = moduleCode === "M4";
   const guidance = useChildAudioGuidance({
@@ -78,19 +77,26 @@ export function PracticeRunner({
     [answers, items],
   );
 
-  async function playM4Guidance() {
+  async function playM4Instruction() {
+    if (m4Playing) {
+      return;
+    }
+
+    setM4Playing(true);
+    try {
+      await speakText("소리 듣기 버튼을 누르고 같은 걸 고르세요.");
+    } finally {
+      setM4Playing(false);
+    }
+  }
+
+  async function playM4Pattern() {
     if (!currentPracticeItem || m4Playing) {
       return;
     }
 
     setM4Playing(true);
     try {
-      if (!m4HasPlayedIntro) {
-        await speakText("소리 듣기 버튼을 누르고 같은 걸 고르세요.");
-        setM4HasPlayedIntro(true);
-        return;
-      }
-
       const segments =
         currentPracticeItem.promptSequence && currentPracticeItem.promptSequence.length > 0
           ? currentPracticeItem.promptSequence
@@ -209,14 +215,27 @@ export function PracticeRunner({
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
         {isM4 ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-start">
-              <ChildAudioGuidanceControls
-                onPlay={playM4Guidance}
-                isPlaying={m4Playing}
-                hasPlayedOnce={m4HasPlayedIntro}
-                primaryLabel="설명 듣기"
-                replayLabel="소리 듣기"
-              />
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  void playM4Instruction();
+                }}
+                disabled={m4Playing}
+                className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                {m4Playing ? "듣는 중..." : "설명 듣기"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void playM4Pattern();
+                }}
+                disabled={m4Playing}
+                className="rounded-[1.2rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {m4Playing ? "듣는 중..." : "소리 듣기"}
+              </button>
             </div>
             <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
               <p>1) 소리의 길이가 길고 짧은 것이 섞여 나옵니다.</p>
