@@ -8,6 +8,7 @@ import {
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
 import { ChildStageHeader } from "@/components/child-stage-header";
+import { playPattern, speakText, wait } from "@/lib/audio-playback";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
 
 type PracticeItem = {
@@ -15,6 +16,7 @@ type PracticeItem = {
   prompt: string;
   choices: string[];
   correctAnswer: string;
+  promptSequence?: string[];
 };
 
 type PracticeRunnerProps = {
@@ -51,19 +53,101 @@ export function PracticeRunner({
   const [submitting, setSubmitting] = useState(false);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [m4Playing, setM4Playing] = useState(false);
+  const [m4HasPlayedIntro, setM4HasPlayedIntro] = useState(false);
   const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
+  const isM4 = moduleCode === "M4";
   const guidance = useChildAudioGuidance({
     instructionText: instructionText ?? instructions,
     instructionAudio,
     stimulusText: currentPracticeItem?.prompt,
     stimulusPlaybackType: playbackType,
-    autoplayKey: currentPracticeItem ? `${moduleCode}-${currentPracticeItem.id}` : `${moduleCode}-practice`,
+    autoplayKey: isM4
+      ? ""
+      : currentPracticeItem
+        ? `${moduleCode}-${currentPracticeItem.id}`
+        : `${moduleCode}-practice`,
   });
+  const isPlaying = isM4 ? m4Playing : guidance.isPlaying;
+  const headerInstructionLine = isM4
+    ? "소리를 듣고 같은 걸 골라요"
+    : getChildInstructionLine(moduleCode);
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
     [answers, items],
   );
+
+  async function playM4Guidance() {
+    if (!currentPracticeItem || m4Playing) {
+      return;
+    }
+
+    setM4Playing(true);
+    try {
+      if (!m4HasPlayedIntro) {
+        await speakText("소리 듣기 버튼을 누르고 같은 걸 고르세요.");
+        setM4HasPlayedIntro(true);
+        return;
+      }
+
+      const segments =
+        currentPracticeItem.promptSequence && currentPracticeItem.promptSequence.length > 0
+          ? currentPracticeItem.promptSequence
+          : currentPracticeItem.prompt.split("-").map((segment) => segment.trim());
+
+      for (let index = 0; index < segments.length; index += 1) {
+        await playPattern(segments[index] ?? "", {
+          segmentDurationScale: 2,
+          segmentGapMs: 240,
+        });
+
+        if (index < segments.length - 1) {
+          await wait(1000);
+        }
+      }
+    } finally {
+      setM4Playing(false);
+    }
+  }
+
+  function renderM4Choice(choice: string) {
+    const segments = choice.split("-").map((segment) => segment.trim());
+    const isLengthPattern = segments.every(
+      (segment) => segment === "짧음" || segment === "길음",
+    );
+
+    return (
+      <div className="flex items-center gap-4">
+        <div className="flex min-w-28 justify-center">
+          {isLengthPattern ? (
+            <div className="flex flex-col gap-2">
+              {segments.map((segment, segmentIndex) => (
+                <div
+                  key={`${choice}-${segmentIndex}`}
+                  className={`rounded-full bg-[var(--accent-strong)] ${
+                    segment === "길음" ? "h-3 w-20" : "h-3 w-10"
+                  }`}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-end gap-2">
+              {segments.map((segment, segmentIndex) => (
+                <div
+                  key={`${choice}-${segmentIndex}`}
+                  className={`w-4 rounded-full bg-[var(--accent-strong)] ${
+                    segment === "높음" ? "h-16" : "h-8"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+        <span>{choice}</span>
+      </div>
+    );
+  }
 
   async function submitRound() {
     if (!isComplete) {
@@ -120,14 +204,34 @@ export function PracticeRunner({
     <div className="space-y-4">
       <ChildStageHeader
         stageLabel="연습"
-        instructionLine={getChildInstructionLine(moduleCode)}
+        instructionLine={headerInstructionLine}
       />
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
-        <ChildAudioGuidanceControls
-          onPlay={guidance.playGuidance}
-          isPlaying={guidance.isPlaying}
-          hasPlayedOnce={guidance.hasPlayedOnce}
-        />
+        {isM4 ? (
+          <div className="space-y-4">
+            <div className="flex items-center justify-start">
+              <ChildAudioGuidanceControls
+                onPlay={playM4Guidance}
+                isPlaying={m4Playing}
+                hasPlayedOnce={m4HasPlayedIntro}
+                primaryLabel="설명 듣기"
+                replayLabel="소리 듣기"
+              />
+            </div>
+            <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
+              <p>1) 소리의 길이가 길고 짧은 것이 섞여 나옵니다.</p>
+              <p>2) 소리의 높낮이가 다른 것이 섞여 나옵니다.</p>
+              <p>3) 각각 2번 연습할 수 있습니다.</p>
+              <p>4) 연습이 끝나면 &apos;검사 시작&apos; 버튼을 누르세요.</p>
+            </div>
+          </div>
+        ) : (
+          <ChildAudioGuidanceControls
+            onPlay={guidance.playGuidance}
+            isPlaying={guidance.isPlaying}
+            hasPlayedOnce={guidance.hasPlayedOnce}
+          />
+        )}
       </div>
 
       {errorMessage ? (
@@ -143,7 +247,6 @@ export function PracticeRunner({
         >
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold">연습 {index + 1}</p>
-            <span className="text-xs text-[var(--muted)]">설명 후 문항 재생 사용</span>
           </div>
           <div className="mt-4 grid gap-2">
             {item.choices.map((choice) => (
@@ -156,14 +259,14 @@ export function PracticeRunner({
                     [item.id]: choice,
                   }))
                 }
-                disabled={guidance.isPlaying}
+                disabled={isPlaying}
                 className={`rounded-[1rem] border px-4 py-3 text-left text-sm ${
                   answers[item.id] === choice
                     ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
                     : "border-[var(--line)] bg-white"
                 }`}
               >
-                {choice}
+                {isM4 ? renderM4Choice(choice) : choice}
               </button>
             ))}
           </div>
@@ -192,7 +295,7 @@ export function PracticeRunner({
           disabled={!isComplete || submitting}
           className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
         >
-          {submitting ? "저장 중..." : "연습 결과 저장"}
+          {submitting ? "저장 중..." : isM4 ? "검사 시작" : "연습 결과 저장"}
         </button>
 
         {(roundState === "passed" || practiceFailures >= 2) && (

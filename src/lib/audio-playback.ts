@@ -62,7 +62,13 @@ export async function speakText(
   });
 }
 
-export async function playPattern(pattern: string) {
+export async function playPattern(
+  pattern: string,
+  {
+    segmentDurationScale = 1,
+    segmentGapMs = 120,
+  }: { segmentDurationScale?: number; segmentGapMs?: number } = {},
+) {
   const AudioContextClass =
     window.AudioContext ||
     (window as typeof window & { webkitAudioContext?: typeof AudioContext })
@@ -76,10 +82,11 @@ export async function playPattern(pattern: string) {
   const segments = pattern.split("-").map((segment) => segment.trim());
 
   for (const segment of segments) {
-    const duration =
+    const durationBase =
       segment === "길음" ? 0.42
       : segment === "짧음" ? 0.18
       : 0.24;
+    const duration = durationBase * segmentDurationScale;
     const frequency =
       segment === "높음" ? 880
       : segment === "낮음" ? 440
@@ -96,7 +103,7 @@ export async function playPattern(pattern: string) {
 
     oscillator.start();
     oscillator.stop(context.currentTime + duration);
-    await wait(duration * 1000 + 120);
+    await wait(duration * 1000 + segmentGapMs);
   }
 
   await context.close();
