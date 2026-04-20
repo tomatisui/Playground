@@ -54,6 +54,7 @@ export function PracticeRunner({
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [m4Playing, setM4Playing] = useState(false);
+  const [m4SoundPlayCount, setM4SoundPlayCount] = useState(0);
   const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
   const isM4 = moduleCode === "M4";
   const guidance = useChildAudioGuidance({
@@ -71,6 +72,22 @@ export function PracticeRunner({
   const headerInstructionLine = isM4
     ? "소리를 듣고 같은 걸 골라요"
     : getChildInstructionLine(moduleCode);
+  const m4LengthItems = items.filter(
+    (item) =>
+      item.id.includes("p1") ||
+      item.prompt.includes("짧음") ||
+      item.prompt.includes("길음"),
+  );
+  const m4PitchItems = items.filter(
+    (item) =>
+      item.id.includes("p2") ||
+      item.prompt.includes("높음") ||
+      item.prompt.includes("낮음"),
+  );
+  const m4CurrentSoundItem =
+    m4SoundPlayCount % 2 === 0
+      ? m4LengthItems[Math.floor(m4SoundPlayCount / 2)] ?? m4LengthItems[0]
+      : m4PitchItems[Math.floor(m4SoundPlayCount / 2)] ?? m4PitchItems[0];
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
@@ -91,16 +108,16 @@ export function PracticeRunner({
   }
 
   async function playM4Pattern() {
-    if (!currentPracticeItem || m4Playing) {
+    if (!m4CurrentSoundItem || m4Playing || m4SoundPlayCount >= 4) {
       return;
     }
 
     setM4Playing(true);
     try {
       const segments =
-        currentPracticeItem.promptSequence && currentPracticeItem.promptSequence.length > 0
-          ? currentPracticeItem.promptSequence
-          : currentPracticeItem.prompt.split("-").map((segment) => segment.trim());
+        m4CurrentSoundItem.promptSequence && m4CurrentSoundItem.promptSequence.length > 0
+          ? m4CurrentSoundItem.promptSequence
+          : m4CurrentSoundItem.prompt.split("-").map((segment) => segment.trim());
 
       for (let index = 0; index < segments.length; index += 1) {
         await playPattern(segments[index] ?? "", {
@@ -112,6 +129,7 @@ export function PracticeRunner({
           await wait(1000);
         }
       }
+      setM4SoundPlayCount((value) => Math.min(value + 1, 4));
     } finally {
       setM4Playing(false);
     }
@@ -124,7 +142,7 @@ export function PracticeRunner({
     );
 
     return (
-      <div className="flex items-center gap-4">
+      <div className="flex flex-col items-center justify-center gap-3 text-center">
         <div className="flex min-w-28 justify-center">
           {isLengthPattern ? (
             <div className="flex flex-col gap-2">
@@ -214,8 +232,14 @@ export function PracticeRunner({
       />
       <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
         {isM4 ? (
-          <div className="space-y-4">
-            <div className="flex items-center justify-end gap-3">
+          <div className="flex items-start justify-between gap-6">
+            <div className="space-y-1 self-start text-sm leading-7 text-[var(--muted)]">
+              <p>1) 소리의 패턴을 듣고 같은 걸 고릅니다.</p>
+              <p>2) 소리는 길이와 높낮이 두 종류가 있습니다.</p>
+              <p>3) 각각 2번 연습할 수 있습니다.</p>
+              <p>4) 연습이 끝나면 &apos;검사 시작&apos; 버튼을 누르세요.</p>
+            </div>
+            <div className="flex shrink-0 items-start justify-end gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -231,17 +255,11 @@ export function PracticeRunner({
                 onClick={() => {
                   void playM4Pattern();
                 }}
-                disabled={m4Playing}
+                disabled={m4Playing || m4SoundPlayCount >= 4}
                 className="rounded-[1.2rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white disabled:opacity-50"
               >
                 {m4Playing ? "듣는 중..." : "소리 듣기"}
               </button>
-            </div>
-            <div className="space-y-1 text-sm leading-7 text-[var(--muted)]">
-              <p>1) 소리의 길이가 길고 짧은 것이 섞여 나옵니다.</p>
-              <p>2) 소리의 높낮이가 다른 것이 섞여 나옵니다.</p>
-              <p>3) 각각 2번 연습할 수 있습니다.</p>
-              <p>4) 연습이 끝나면 &apos;검사 시작&apos; 버튼을 누르세요.</p>
             </div>
           </div>
         ) : (
@@ -267,7 +285,7 @@ export function PracticeRunner({
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold">연습 {index + 1}</p>
           </div>
-          <div className="mt-4 grid gap-2">
+          <div className={`mt-4 grid gap-2 ${isM4 ? "sm:grid-cols-2" : ""}`}>
             {item.choices.map((choice) => (
               <button
                 key={choice}
@@ -283,7 +301,7 @@ export function PracticeRunner({
                   answers[item.id] === choice
                     ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
                     : "border-[var(--line)] bg-white"
-                }`}
+                } ${isM4 ? "min-h-28" : ""}`}
               >
                 {isM4 ? renderM4Choice(choice) : choice}
               </button>
