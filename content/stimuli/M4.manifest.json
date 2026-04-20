@@ -88,23 +88,6 @@
       "notes": "Age 5 length-pattern item with maximum length 3."
     },
     {
-      "id": "m4-5-2",
-      "ageBand": [5, 6],
-      "contentGroup": "pitch_pattern",
-      "prompt": "높음-낮음-높음",
-      "promptSequence": ["높음", "낮음", "높음"],
-      "promptAudio": null,
-      "localAudioPath": "content/audio/m4/m4-5-2.wav",
-      "choices": ["높음-낮음-높음", "낮음-높음-낮음", "높음-높음-낮음"],
-      "choiceImageKeys": ["high-low-high", "low-high-low", "high-high-low"],
-      "choiceImages": [],
-      "correctAnswer": "높음-낮음-높음",
-      "difficultyLevel": "core",
-      "placeholder": false,
-      "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 5 pitch-pattern item with maximum length 3."
-    },
-    {
       "id": "m4-5-3",
       "ageBand": [5, 6],
       "contentGroup": "length_pattern",
@@ -122,23 +105,6 @@
       "notes": "Age 5 length-pattern item with maximum length 3."
     },
     {
-      "id": "m4-6-4",
-      "ageBand": [6],
-      "contentGroup": "pitch_pattern",
-      "prompt": "낮음-높음-높음-낮음",
-      "promptSequence": ["낮음", "높음", "높음", "낮음"],
-      "promptAudio": null,
-      "localAudioPath": "content/audio/m4/m4-6-4.wav",
-      "choices": ["낮음-높음-높음-낮음", "높음-낮음-높음-낮음", "낮음-높음-낮음-높음"],
-      "choiceImageKeys": ["low-high-high-low", "high-low-high-low", "low-high-low-high"],
-      "choiceImages": [],
-      "correctAnswer": "낮음-높음-높음-낮음",
-      "difficultyLevel": "core_plus",
-      "placeholder": false,
-      "labels": ["provisional_prototype_content", "content_not_final"],
-      "notes": "Age 6 pitch-pattern item with maximum length 4."
-    },
-    {
       "id": "m4-6-5",
       "ageBand": [6],
       "contentGroup": "length_pattern",
@@ -154,6 +120,40 @@
       "placeholder": false,
       "labels": ["provisional_prototype_content", "content_not_final"],
       "notes": "Age 6 length-pattern item with maximum length 4."
+    },
+    {
+      "id": "m4-5-2",
+      "ageBand": [5, 6],
+      "contentGroup": "pitch_pattern",
+      "prompt": "높음-낮음-높음",
+      "promptSequence": ["높음", "낮음", "높음"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-5-2.wav",
+      "choices": ["높음-낮음-높음", "낮음-높음-낮음", "높음-높음-낮음"],
+      "choiceImageKeys": ["high-low-high", "low-high-low", "high-high-low"],
+      "choiceImages": [],
+      "correctAnswer": "높음-낮음-높음",
+      "difficultyLevel": "core",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 5 pitch-pattern item with maximum length 3."
+    },
+    {
+      "id": "m4-6-4",
+      "ageBand": [6],
+      "contentGroup": "pitch_pattern",
+      "prompt": "낮음-높음-높음-낮음",
+      "promptSequence": ["낮음", "높음", "높음", "낮음"],
+      "promptAudio": null,
+      "localAudioPath": "content/audio/m4/m4-6-4.wav",
+      "choices": ["낮음-높음-높음-낮음", "높음-낮음-높음-낮음", "낮음-높음-낮음-높음"],
+      "choiceImageKeys": ["low-high-high-low", "high-low-high-low", "low-high-low-high"],
+      "choiceImages": [],
+      "correctAnswer": "낮음-높음-높음-낮음",
+      "difficultyLevel": "core_plus",
+      "placeholder": false,
+      "labels": ["provisional_prototype_content", "content_not_final"],
+      "notes": "Age 6 pitch-pattern item with maximum length 4."
     }
   ],
   "promptAudio": [],

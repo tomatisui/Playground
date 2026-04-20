@@ -216,8 +216,15 @@ export function PracticeRunner({
 
     setPracticeRuns(nextRuns);
     setPracticeFailures(nextFailures);
-    setRoundState(passed ? "passed" : "failed");
     setSubmitting(false);
+
+    if (isM4) {
+      router.push(moduleHref);
+      router.refresh();
+      return;
+    }
+
+    setRoundState(passed ? "passed" : "failed");
 
     if (passed) {
       return;
@@ -339,7 +346,7 @@ export function PracticeRunner({
           {submitting ? "저장 중..." : isM4 ? "검사 시작" : "연습 결과 저장"}
         </button>
 
-        {(roundState === "passed" || practiceFailures >= 2) && (
+        {!isM4 && (roundState === "passed" || practiceFailures >= 2) && (
           <Link
             href={moduleHref}
             className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-center text-sm font-semibold"
