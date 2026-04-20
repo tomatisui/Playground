@@ -145,14 +145,18 @@ export function PracticeRunner({
       <div className="flex flex-col items-center justify-center gap-3 text-center">
         <div className="flex min-w-28 justify-center">
           {isLengthPattern ? (
-            <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-4">
               {segments.map((segment, segmentIndex) => (
                 <div
                   key={`${choice}-${segmentIndex}`}
-                  className={`rounded-full bg-[var(--accent-strong)] ${
-                    segment === "길음" ? "h-3 w-20" : "h-3 w-10"
-                  }`}
-                />
+                  className="flex flex-col items-center"
+                >
+                  <div
+                    className={`rounded-full bg-[var(--accent-strong)] ${
+                      segment === "길음" ? "h-3 w-20" : "h-3 w-10"
+                    }`}
+                  />
+                </div>
               ))}
             </div>
           ) : (
