@@ -75,7 +75,7 @@ export async function playPattern(
       .webkitAudioContext;
 
   if (!AudioContextClass) {
-    return;
+    return { status: "unavailable" as const };
   }
 
   const context = new AudioContextClass();
@@ -107,6 +107,7 @@ export async function playPattern(
   }
 
   await context.close();
+  return { status: "played" as const };
 }
 
 export async function playPrompt(playbackType: "tts" | "pattern", prompt: string) {
