@@ -77,7 +77,7 @@ const M4_SECTION_LABELS: Record<M4SectionGroup, string> = {
   pitch_pattern: "높낮이 검사",
 };
 const M4_EXPLANATION_TEXT =
-  "소리를 잘 듣고 같은 걸 고르세요. 맞는 걸 고르고 선택 완료 버튼을 누르세요.";
+  "소리를 잘 듣고 같은 걸 고른 후 선택 완료 버튼을 누르세요.";
 
 function normalizeM4LevelItems(levelItems: ModuleItem[]) {
   const sorted = [...levelItems].sort((left, right) => left.id.localeCompare(right.id));
@@ -688,7 +688,7 @@ export function ModuleRunner({
               <div className="space-y-1 self-start text-sm leading-7 text-[rgb(70,92,116)]">
                 <p>1) 소리의 패턴을 듣고 같은 걸 고릅니다.</p>
                 <p>2) 길이 패턴을 먼저 하고, 다음에 높낮이 패턴을 합니다.</p>
-                <p>3) 맞는 걸 고르고, 선택 완료 버튼을 누르면 다음으로 넘어갑니다.</p>
+                <p>3) 같은 걸 고른 후 선택 완료 버튼을 누르세요.</p>
                 <p>4) 소리 듣기는 한 번만 나와요.</p>
               </div>
               <div className="flex shrink-0 items-start justify-end gap-3">
@@ -724,28 +724,34 @@ export function ModuleRunner({
                 </p>
               </div>
 
-              <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                {m4CurrentChoices.map((choice) => (
-                  <button
-                    key={choice.value}
-                    type="button"
-                    onClick={() =>
-                      setM4PendingChoice({
-                        itemId: m4CurrentItem.id,
-                        value: choice.value,
-                      })
-                    }
-                    disabled={saving || isPlaying}
-                    className={`min-h-28 rounded-[1rem] border px-4 py-3 text-left text-sm ${
-                      m4ActivePendingChoice === choice.value
-                        ? "border-[rgb(58,111,168)] bg-[rgba(58,111,168,0.14)]"
-                        : "border-[rgba(58,111,168,0.18)] bg-white"
-                    }`}
-                  >
-                    {renderM4Choice(choice.value)}
-                  </button>
-                ))}
-              </div>
+              {m4PlayedItemIds.includes(m4CurrentItem.id) ? (
+                <div className="mt-4 grid gap-3">
+                  {m4CurrentChoices.map((choice) => (
+                    <button
+                      key={choice.value}
+                      type="button"
+                      onClick={() =>
+                        setM4PendingChoice({
+                          itemId: m4CurrentItem.id,
+                          value: choice.value,
+                        })
+                      }
+                      disabled={saving || isPlaying}
+                      className={`min-h-32 rounded-[1rem] border px-5 py-4 text-left text-sm ${
+                        m4ActivePendingChoice === choice.value
+                          ? "border-[rgb(58,111,168)] bg-[rgba(58,111,168,0.14)]"
+                          : "border-[rgba(58,111,168,0.18)] bg-white"
+                      }`}
+                    >
+                      {renderM4Choice(choice.value)}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-4 rounded-[1rem] border border-dashed border-[rgba(58,111,168,0.28)] bg-white/70 px-4 py-5 text-center text-sm leading-7 text-[rgb(70,92,116)]">
+                  소리를 끝까지 들은 뒤에 보기가 나타나요.
+                </div>
+              )}
 
               <button
                 type="button"
