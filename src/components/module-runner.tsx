@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChildAudioGuidanceControls,
@@ -33,6 +33,8 @@ type ModuleRunnerProps = {
   initialIndex: number;
   initialResponses: string[];
   initialAssistCount: number;
+  m4SkipLength?: boolean;
+  m4SkipPitch?: boolean;
   nextHref: string;
 };
 
@@ -342,6 +344,8 @@ export function ModuleRunner({
   initialIndex,
   initialResponses,
   initialAssistCount,
+  m4SkipLength = false,
+  m4SkipPitch = false,
   nextHref,
 }: ModuleRunnerProps) {
   const router = useRouter();
@@ -357,6 +361,7 @@ export function ModuleRunner({
   } | null>(null);
   const [m4PlayedItemIds, setM4PlayedItemIds] = useState<string[]>([]);
   const [m4AutoplayDone, setM4AutoplayDone] = useState(false);
+  const [m4AutoCompleting, setM4AutoCompleting] = useState(false);
   const currentItem = items[currentIndex];
   const isM4 = moduleCode === "M4";
   const isResume = initialIndex > 0 || initialResponses.length > 0;
@@ -371,7 +376,22 @@ export function ModuleRunner({
   const headerInstructionLine = isM4
     ? "소리를 듣고 같은 걸 골라요"
     : getChildInstructionLine(moduleCode);
-  const m4Plan = useMemo(() => buildM4RuntimePlan(items), [items]);
+  const m4FilteredItems = useMemo(() => {
+    if (!isM4) {
+      return items;
+    }
+
+    return items.filter((item) => {
+      if (item.contentGroup === "length_pattern" && m4SkipLength) {
+        return false;
+      }
+      if (item.contentGroup === "pitch_pattern" && m4SkipPitch) {
+        return false;
+      }
+      return true;
+    });
+  }, [isM4, items, m4SkipLength, m4SkipPitch]);
+  const m4Plan = useMemo(() => buildM4RuntimePlan(m4FilteredItems), [m4FilteredItems]);
   const m4State = useMemo(
     () => deriveM4State(m4Plan, responses),
     [m4Plan, responses],
@@ -394,6 +414,17 @@ export function ModuleRunner({
     const sectionItems = m4CurrentSection.levels.flatMap((level) => level.items);
     return getM4ChoiceSet(m4CurrentItem, sectionItems, sessionId);
   }, [m4CurrentItem, m4CurrentSection, sessionId]);
+
+  const buildM4ResponseLog = useCallback(
+    (nextResponses: string[]) =>
+      JSON.stringify({
+        kind: "m4-runtime-state",
+        skipLength: m4SkipLength,
+        skipPitch: m4SkipPitch,
+        testResponses: nextResponses,
+      }),
+    [m4SkipLength, m4SkipPitch],
+  );
 
   const currentProgress = useMemo(
     () => `${Math.min(currentIndex + 1, items.length)}/${items.length}`,
@@ -425,6 +456,61 @@ export function ModuleRunner({
       window.clearTimeout(timeoutId);
     };
   }, [isM4, m4AutoplayDone, m4Playing, m4State.completed]);
+
+  useEffect(() => {
+    if (!isM4 || m4Plan.sections.length > 0 || m4AutoCompleting) {
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      setM4AutoCompleting(true);
+      setSaving(true);
+      setErrorMessage("");
+
+      const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "complete",
+          correctCount: 0,
+          itemCount: 0,
+          responseLog: buildM4ResponseLog([]),
+          caregiverAssistCount: assistCount,
+        }),
+      });
+
+      if (!response.ok) {
+        if (!cancelled) {
+          setSaving(false);
+          setErrorMessage("검사 상태를 정리하지 못했습니다. 다시 시도해 주세요.");
+        }
+        return;
+      }
+
+      if (!cancelled) {
+        router.push(nextHref);
+        router.refresh();
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    assistCount,
+    buildM4ResponseLog,
+    isM4,
+    m4AutoCompleting,
+    m4Plan.sections.length,
+    moduleCode,
+    nextHref,
+    router,
+    sessionId,
+  ]);
 
   async function playM4Explanation() {
     if (m4Playing) {
@@ -496,7 +582,7 @@ export function ModuleRunner({
     const payloadBase = {
       correctCount: summary.correctCount,
       itemCount: summary.itemCount,
-      responseLog: JSON.stringify(updatedResponses),
+      responseLog: buildM4ResponseLog(updatedResponses),
       caregiverAssistCount: assistCount,
     };
 

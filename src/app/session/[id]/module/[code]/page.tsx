@@ -20,6 +20,46 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function parseM4AttemptState(responseLog: string | null) {
+  if (!responseLog) {
+    return {
+      skipLength: false,
+      skipPitch: false,
+      testResponses: [] as string[],
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(responseLog);
+
+    if (Array.isArray(parsed)) {
+      return {
+        skipLength: false,
+        skipPitch: false,
+        testResponses: parsed.filter((item: unknown): item is string => typeof item === "string"),
+      };
+    }
+
+    if (parsed && typeof parsed === "object") {
+      const testResponses = Array.isArray(parsed.testResponses)
+        ? parsed.testResponses.filter((item: unknown): item is string => typeof item === "string")
+        : [];
+
+      return {
+        skipLength: Boolean(parsed.skipLength),
+        skipPitch: Boolean(parsed.skipPitch),
+        testResponses,
+      };
+    }
+  } catch {}
+
+  return {
+    skipLength: false,
+    skipPitch: false,
+    testResponses: [] as string[],
+  };
+}
+
 export default async function ModulePage({
   params,
 }: {
@@ -148,6 +188,11 @@ export default async function ModulePage({
         code as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5",
       );
 
+  const m4AttemptState =
+    definition.moduleCode === "M4"
+      ? parseM4AttemptState(attempt?.responseLog ?? null)
+      : null;
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
@@ -174,8 +219,14 @@ export default async function ModulePage({
                 instructionAudio={definition.instructionAudio}
                 items={definition.testItems ?? []}
                 initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
-                initialResponses={parseResponseLog(attempt?.responseLog ?? null)}
+                initialResponses={
+                  definition.moduleCode === "M4"
+                    ? m4AttemptState?.testResponses ?? []
+                    : parseResponseLog(attempt?.responseLog ?? null)
+                }
                 initialAssistCount={attempt?.caregiverAssistCount ?? 0}
+                m4SkipLength={m4AttemptState?.skipLength ?? false}
+                m4SkipPitch={m4AttemptState?.skipPitch ?? false}
                 nextHref={nextHref}
               />
             )}

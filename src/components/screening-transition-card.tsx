@@ -1,10 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
 import { ChildStageHeader } from "@/components/child-stage-header";
 import type { ChildStageLabel } from "@/lib/child-ui-copy";
-import { speakText, wait } from "@/lib/audio-playback";
 
 type ScreeningTransitionCardProps = {
   screenKey: string;
@@ -22,7 +20,6 @@ type ScreeningTransitionCardProps = {
 };
 
 export function ScreeningTransitionCard({
-  screenKey,
   stageLabel,
   instructionLine,
   body,
@@ -33,35 +30,7 @@ export function ScreeningTransitionCard({
   secondaryHref,
   tone = "warm",
   emphasis = "default",
-  audioText,
 }: ScreeningTransitionCardProps) {
-  const playedKeyRef = useRef("");
-
-  useEffect(() => {
-    if (!audioText || playedKeyRef.current === screenKey) {
-      return;
-    }
-
-    playedKeyRef.current = screenKey;
-    let cancelled = false;
-
-    void (async () => {
-      await wait(900);
-      if (cancelled) {
-        return;
-      }
-      await speakText(audioText, {
-        rate: 0.94,
-        pitch: 0.98,
-        preferLangPrefix: "ko",
-      });
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [audioText, screenKey]);
-
   return (
     <div className="space-y-4">
       <ChildStageHeader

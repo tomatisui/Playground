@@ -119,6 +119,7 @@ export default async function PracticePage({
                   instructionText={definition.instructionText ?? definition.instructions ?? ""}
                   instructionAudio={definition.instructionAudio}
                   items={definition.practiceItems ?? []}
+                  trainingPool={definition.trainingPool ?? []}
                   trainingMasteryThreshold={
                     definition.preLearning?.trainingMasteryThreshold ?? 0.5
                   }
