@@ -1,5 +1,8 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { AudioCheckClient } from "@/components/audio-check-client";
+import { buildConsultationHref } from "@/lib/screening-flow";
+import { isConsultationEndedSession } from "@/lib/session-runtime";
 import { prisma } from "@/lib/prisma";
 
 export default async function AudioCheckPage({
@@ -47,6 +50,10 @@ export default async function AudioCheckPage({
         </section>
       </main>
     );
+  }
+
+  if (isConsultationEndedSession(session)) {
+    redirect(buildConsultationHref(session.id));
   }
 
   return (

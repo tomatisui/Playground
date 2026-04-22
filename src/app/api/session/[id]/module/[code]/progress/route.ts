@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCompletionSnapshot } from "@/lib/screening-config";
 import {
+  buildAllTestsCompleteHref,
+  buildPracticeStartHref,
+} from "@/lib/screening-flow";
+import {
   buildProvisionalSummary,
   touchSessionRoute,
   upsertQualityFlag,
@@ -192,9 +196,17 @@ export async function POST(
       );
 
       if (snapshot.is_complete) {
-        await touchSessionRoute(id, `/session/${id}/report`, null);
+        await touchSessionRoute(id, buildAllTestsCompleteHref(id), null);
       } else {
-        await touchSessionRoute(id, `/session/${id}/practice`, null);
+        await touchSessionRoute(
+          id,
+          buildPracticeStartHref(
+            id,
+            snapshot.next_module!,
+            code as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5",
+          ),
+          snapshot.next_module!,
+        );
       }
     }
 

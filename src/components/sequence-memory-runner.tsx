@@ -8,7 +8,9 @@ import {
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
 import { ChildStageHeader } from "@/components/child-stage-header";
+import { ScreeningTransitionCard } from "@/components/screening-transition-card";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
+import { getTestStartCopy } from "@/lib/screening-flow";
 import { playFeedbackTone, speakText, wait } from "@/lib/audio-playback";
 
 type TrainingPoolItem = {
@@ -374,9 +376,9 @@ export function SequencePracticeRunner({
     : false;
   const practiceInstructionLine =
     moduleCode === "M3-R" ? "말을 잘 듣고 거꾸로 골라요" : "말을 잘 듣고 같은 순서로 골라요";
-  const testInstructionLine = getChildInstructionLine(moduleCode);
   const allRecognitionMatched = recognitionMatched.length === familiarizationItems.length;
   const practiceGuidanceLines = getSequenceGuidanceLines(moduleCode);
+  const testStartCopy = getTestStartCopy(moduleCode as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5");
   const activePracticeSelection = activePracticeItem
     ? normalizeSlotSelection(practiceSelections[activePracticeItem.id], getSlotCount(activePracticeItem))
     : [];
@@ -818,7 +820,6 @@ export function SequencePracticeRunner({
 
       {phase === "done" ? (
         <div className="space-y-4">
-          <ChildStageHeader stageLabel="검사" instructionLine={testInstructionLine} emphasis="strong" />
           {roundState === "failed" ? (
             <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
               먼저 들어보기 또는 연습에서 아직 어려움이 보였습니다.
@@ -832,42 +833,44 @@ export function SequencePracticeRunner({
             </div>
           )}
 
-          <div className="flex flex-col gap-3 sm:flex-row">
-            {roundState === "failed" && practiceFailures < 2 ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setPhase("recognition");
-                  setRecognitionMatched([]);
-                  setRecognitionWrongCount(0);
-                  setRecognitionCursor(0);
-                  setRecognitionCurrentTarget("");
-                  setRecognitionPlaying(false);
-                  setRecognitionHasPlayed(false);
-                  setRecognitionSkipped(false);
-                  setPracticeSelections({});
-                  resetPracticePlayback(true);
-                  setPracticeStepIndex(0);
-                  setRoundState("idle");
-                  router.refresh();
-                }}
-                className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
-              >
-                다시 연습
-              </button>
-            ) : null}
-
-            <Link
-              href={moduleHref}
-              className={`flex-1 rounded-[1.2rem] px-4 py-3 text-center text-sm font-semibold text-white ${
-                readyForTest || practiceFailures >= 2
-                  ? "bg-[var(--accent-strong)]"
-                  : "bg-slate-300"
-              }`}
+          {roundState === "failed" && practiceFailures < 2 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setPhase("recognition");
+                setRecognitionMatched([]);
+                setRecognitionWrongCount(0);
+                setRecognitionCursor(0);
+                setRecognitionCurrentTarget("");
+                setRecognitionPlaying(false);
+                setRecognitionHasPlayed(false);
+                setRecognitionSkipped(false);
+                setPracticeSelections({});
+                resetPracticePlayback(true);
+                setPracticeStepIndex(0);
+                setRoundState("idle");
+                router.refresh();
+              }}
+              className="w-full rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
             >
-              본검사 시작
-            </Link>
-          </div>
+              다시 연습
+            </button>
+          ) : null}
+
+          {(readyForTest || practiceFailures >= 2) ? (
+            <ScreeningTransitionCard
+              screenKey={`test-start-${sessionId}-${moduleCode}`}
+              stageLabel="검사"
+              instructionLine={testStartCopy.title}
+              body={testStartCopy.body}
+              bullets={testStartCopy.bullets}
+              primaryLabel={testStartCopy.primaryLabel}
+              primaryHref={moduleHref}
+              tone="cool"
+              emphasis="strong"
+              audioText={testStartCopy.audioText}
+            />
+          ) : null}
           {!readyForTest && roundState === "passed" ? (
             <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
               연습은 완료되었지만 본검사 진입 상태를 다시 확인하고 있습니다. 버튼이 반응하지 않으면 페이지를 새로고침한 뒤 다시 시도해 주세요.

@@ -6,6 +6,12 @@ import { prisma } from "@/lib/prisma";
 import { getModuleDefinition } from "@/lib/module-catalog";
 import { getCompletionSnapshot, isExpectedModule } from "@/lib/screening-config";
 import {
+  buildAllTestsCompleteHref,
+  buildConsultationHref,
+  buildOverviewHref,
+  buildPracticeStartHref,
+} from "@/lib/screening-flow";
+import {
   buildProvisionalSummary,
   touchSessionRoute,
   upsertQualityFlag,
@@ -221,7 +227,10 @@ export async function submitAudioCheck(formData: FormData) {
     data: {
       audioCheckPassed: passed,
       audioCheckCompletedAt: new Date(),
-      currentRoute: `/session/${sessionId}/practice`,
+      currentRoute: passed
+        ? buildOverviewHref(sessionId)
+        : buildConsultationHref(sessionId),
+      currentModuleCode: null,
       lastActiveAt: new Date(),
     },
   });
@@ -232,9 +241,15 @@ export async function submitAudioCheck(formData: FormData) {
       "audio_check_failed",
       "Guardian selected that the headphone or sound check did not pass cleanly.",
     );
+    await upsertQualityFlag(
+      sessionId,
+      "consultation_recommended_after_audio_check",
+      "Screening ended after the audio check because the guardian reported volume adjustment difficulty.",
+    );
+    redirect(buildConsultationHref(sessionId));
   }
 
-  redirect(`/session/${sessionId}/practice`);
+  redirect(buildOverviewHref(sessionId));
 }
 
 export async function completePlaceholderModule(formData: FormData) {
@@ -282,12 +297,24 @@ export async function completePlaceholderModule(formData: FormData) {
   );
 
   if (snapshot.is_complete) {
-    await touchSessionRoute(sessionId, `/session/${sessionId}/report`, null);
-    redirect(`/session/${sessionId}/report`);
+    const href = buildAllTestsCompleteHref(sessionId);
+    await touchSessionRoute(sessionId, href, null);
+    redirect(href);
   }
 
-  await touchSessionRoute(sessionId, `/session/${sessionId}/practice`, null);
-  redirect(`/session/${sessionId}/practice`);
+  const href = buildPracticeStartHref(
+    sessionId,
+    snapshot.next_module!,
+    moduleCode as
+      | "M1"
+      | "M2"
+      | "M3"
+      | "M3-R"
+      | "M4"
+      | "M5",
+  );
+  await touchSessionRoute(sessionId, href, snapshot.next_module!);
+  redirect(href);
 }
 
 export async function completeRecommendedModule(formData: FormData) {

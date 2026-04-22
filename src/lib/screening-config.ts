@@ -10,11 +10,11 @@ export const MODULE_PRIORITY = [
 export const AGE_MODULES = {
   5: {
     label: "Age 5",
-    expected_modules: ["M1", "M2", "M3", "M4", "M5"],
+    expected_modules: ["M3", "M4", "M5", "M2", "M1"],
   },
   6: {
     label: "Age 6",
-    expected_modules: ["M1", "M2", "M3", "M3-R", "M4", "M5"],
+    expected_modules: ["M3", "M4", "M5", "M3-R", "M2", "M1"],
   },
 } as const;
 

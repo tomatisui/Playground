@@ -1,6 +1,4 @@
 "use client";
-
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
@@ -8,8 +6,10 @@ import {
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
 import { ChildStageHeader } from "@/components/child-stage-header";
+import { ScreeningTransitionCard } from "@/components/screening-transition-card";
 import { playPattern, speakText, wait } from "@/lib/audio-playback";
 import { getChildInstructionLine } from "@/lib/child-ui-copy";
+import { getTestStartCopy } from "@/lib/screening-flow";
 
 type PracticeItem = {
   id: string;
@@ -114,6 +114,9 @@ export function PracticeRunner({
     m4ActivePracticeItems.every((item) => answers[item.id]);
   const m4StageInstructionLine =
     m4Stage === "practice_pitch" ? "높낮이 소리를 듣고 같은 걸 골라요" : "길이 소리를 듣고 같은 걸 골라요";
+  const testStartCopy = getTestStartCopy(moduleCode as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5");
+  const showLegacyPracticeControls =
+    isM4 || roundState === "idle" || (roundState === "failed" && practiceFailures < 2);
 
   const isComplete = useMemo(
     () => items.every((item) => answers[item.id]),
@@ -259,15 +262,6 @@ export function PracticeRunner({
     return true;
   }
 
-  async function startM4Test() {
-    const saved = await submitRound();
-    if (!saved) {
-      return;
-    }
-    router.push(moduleHref);
-    router.refresh();
-  }
-
   function renderM4PracticeCard(item: PracticeItem, index: number) {
     return (
       <article
@@ -305,32 +299,25 @@ export function PracticeRunner({
 
   if (isM4TransitionStage) {
     return (
-      <div className="space-y-4">
-        <ChildStageHeader
-          stageLabel="연습"
-          instructionLine="이제 진짜 검사를 시작해요"
-          emphasis="strong"
-          tone="cool"
-        />
-        <div className="rounded-[1.4rem] border border-[rgba(58,111,168,0.3)] bg-[rgba(58,111,168,0.08)] p-4 text-sm leading-7 text-[var(--muted)]">
-          길이 소리와 높낮이 소리 연습이 끝났어요. 준비가 되면 검사 시작 버튼을 눌러 실제 검사를 시작하세요.
-        </div>
+      <>
         {errorMessage ? (
           <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
             {errorMessage}
           </div>
         ) : null}
-        <button
-          type="button"
-          onClick={() => {
-            void startM4Test();
-          }}
-          disabled={submitting}
-          className="w-full rounded-[1.2rem] bg-[rgb(58,111,168)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[rgb(46,96,148)] disabled:opacity-50"
-        >
-          {submitting ? "저장 중..." : "검사 시작"}
-        </button>
-      </div>
+        <ScreeningTransitionCard
+          screenKey={`test-start-${sessionId}-${moduleCode}`}
+          stageLabel="검사"
+          instructionLine={testStartCopy.title}
+          body={testStartCopy.body}
+          bullets={testStartCopy.bullets}
+          primaryLabel={testStartCopy.primaryLabel}
+          primaryHref={moduleHref}
+          tone="cool"
+          emphasis="strong"
+          audioText={testStartCopy.audioText}
+        />
+      </>
     );
   }
 
@@ -388,11 +375,15 @@ export function PracticeRunner({
 
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             setErrorMessage("");
             if (m4Stage === "practice_length") {
               setM4SoundPlayCount(0);
               setM4Stage("practice_pitch");
+              return;
+            }
+            const saved = await submitRound();
+            if (!saved) {
               return;
             }
             setM4SoundPlayCount(0);
@@ -502,45 +493,47 @@ export function PracticeRunner({
         </div>
       ) : null}
 
-      {roundState === "passed" ? (
-        <div className="rounded-[1.4rem] border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900">
-          연습을 통과했습니다. 본 과제로 이동하세요.
+      {showLegacyPracticeControls ? (
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={submitRound}
+            disabled={!isComplete || submitting}
+            className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+          >
+            {submitting ? "저장 중..." : isM4 ? "검사 시작" : "연습 결과 저장"}
+          </button>
+
+          {roundState === "failed" && practiceFailures < 2 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setRoundState("idle");
+                setAnswers({});
+                router.refresh();
+              }}
+              className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
+            >
+              다시 연습
+            </button>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          onClick={submitRound}
-          disabled={!isComplete || submitting}
-          className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
-        >
-          {submitting ? "저장 중..." : isM4 ? "검사 시작" : "연습 결과 저장"}
-        </button>
-
-        {!isM4 && (roundState === "passed" || practiceFailures >= 2) && (
-          <Link
-            href={moduleHref}
-            className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-center text-sm font-semibold"
-          >
-            본 과제로 이동
-          </Link>
-        )}
-
-        {roundState === "failed" && practiceFailures < 2 ? (
-          <button
-            type="button"
-            onClick={() => {
-              setRoundState("idle");
-              setAnswers({});
-              router.refresh();
-            }}
-            className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
-          >
-            다시 연습
-          </button>
-        ) : null}
-      </div>
+      {(roundState === "passed" || practiceFailures >= 2) && !isM4 ? (
+        <ScreeningTransitionCard
+          screenKey={`test-start-${sessionId}-${moduleCode}`}
+          stageLabel="검사"
+          instructionLine={testStartCopy.title}
+          body={testStartCopy.body}
+          bullets={testStartCopy.bullets}
+          primaryLabel={testStartCopy.primaryLabel}
+          primaryHref={moduleHref}
+          tone="cool"
+          emphasis="strong"
+          audioText={testStartCopy.audioText}
+        />
+      ) : null}
     </div>
   );
 }

@@ -17,6 +17,8 @@ export const QUALITY_FLAG_DETAILS = {
   failed_practice: "Practice rounds were failed repeatedly.",
   interrupted_session: "The child resumed after an interruption during runtime.",
   audio_check_failed: "The guardian reported that the sound check did not pass cleanly.",
+  consultation_recommended_after_audio_check:
+    "The screening ended after the audio check and consultation was recommended.",
   low_training_mastery: "Practice accuracy stayed low across repeated attempts.",
   possible_caregiver_assist: "The guardian reported that extra help may have been needed.",
 } as const;
@@ -274,6 +276,16 @@ export async function getSessionWithDetails(sessionId: string) {
       },
     },
   });
+}
+
+export function isConsultationEndedSession(session: {
+  audioCheckPassed: boolean | null;
+  audioCheckCompletedAt: Date | null;
+}) {
+  return (
+    session.audioCheckCompletedAt !== null &&
+    session.audioCheckPassed === false
+  );
 }
 
 export function getSessionEngineSnapshot(session: {

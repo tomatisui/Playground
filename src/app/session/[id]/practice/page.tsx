@@ -3,8 +3,13 @@ import { redirect } from "next/navigation";
 import { PracticeRunner } from "@/components/practice-runner";
 import { SequencePracticeRunner } from "@/components/sequence-memory-runner";
 import { getModuleDefinition } from "@/lib/module-catalog";
-import { getSessionWithDetails, touchSessionRoute } from "@/lib/session-runtime";
-import { getSessionEngineSnapshot } from "@/lib/session-runtime";
+import { buildConsultationHref } from "@/lib/screening-flow";
+import {
+  getSessionEngineSnapshot,
+  getSessionWithDetails,
+  isConsultationEndedSession,
+  touchSessionRoute,
+} from "@/lib/session-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -39,6 +44,10 @@ export default async function PracticePage({
         </section>
       </main>
     );
+  }
+
+  if (isConsultationEndedSession(session)) {
+    redirect(buildConsultationHref(session.id));
   }
 
   const snapshot = getSessionEngineSnapshot(session);

@@ -1,9 +1,22 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { completePlaceholderModule } from "@/app/actions";
 import { ModuleRunner } from "@/components/module-runner";
 import { SequenceModuleRunner } from "@/components/sequence-memory-runner";
 import { getModuleDefinition } from "@/lib/module-catalog";
-import { parseResponseLog, getSessionWithDetails, getSessionEngineSnapshot, touchSessionRoute, upsertQualityFlag } from "@/lib/session-runtime";
+import {
+  buildAllTestsCompleteHref,
+  buildConsultationHref,
+  buildPracticeStartHref,
+} from "@/lib/screening-flow";
+import {
+  parseResponseLog,
+  getSessionWithDetails,
+  getSessionEngineSnapshot,
+  isConsultationEndedSession,
+  touchSessionRoute,
+  upsertQualityFlag,
+} from "@/lib/session-runtime";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +51,10 @@ export default async function ModulePage({
         </section>
       </main>
     );
+  }
+
+  if (isConsultationEndedSession(session)) {
+    redirect(buildConsultationHref(session.id));
   }
 
   const snapshot = getSessionEngineSnapshot(session);
@@ -124,8 +141,12 @@ export default async function ModulePage({
 
   const nextHref = snapshot.remaining_modules.length === 1 &&
     snapshot.remaining_modules[0] === code
-    ? `/session/${session.id}/report`
-    : `/session/${session.id}/practice`;
+    ? buildAllTestsCompleteHref(session.id)
+    : buildPracticeStartHref(
+        session.id,
+        snapshot.remaining_modules.find((moduleCode) => moduleCode !== code)!,
+        code as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5",
+      );
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
