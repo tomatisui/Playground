@@ -6,6 +6,7 @@ import {
   ChildAudioGuidanceControls,
   useChildAudioGuidance,
 } from "@/components/child-audio-guidance";
+import { ChildChoiceCard } from "@/components/child-choice-card";
 import { ChildStageHeader } from "@/components/child-stage-header";
 import { ScreeningTransitionCard } from "@/components/screening-transition-card";
 import { playFeedbackTone, playPattern, speakText, wait } from "@/lib/audio-playback";
@@ -17,12 +18,26 @@ type PracticeItem = {
   contentGroup?: string;
   prompt: string;
   choices: string[];
+  choiceImageKeys?: string[];
   correctAnswer: string;
   promptSequence?: string[];
 };
 
 type TrainingToken = {
   label: string;
+  imageKey?: string;
+  localAudioPath?: string | null;
+};
+
+type M1FlowStage = "familiarization" | "recognition" | "practice";
+
+type M1FlowState = {
+  stage: M1FlowStage;
+  familiarizationCompleted: boolean;
+  recognitionCompleted: boolean;
+  recognitionLowMastery: boolean;
+  recognitionCorrectStreak: number;
+  recognitionIncorrectCount: number;
 };
 
 type PracticeRunnerProps = {
@@ -38,6 +53,8 @@ type PracticeRunnerProps = {
   initialPracticeRuns: number;
   initialPracticeFailures: number;
   moduleHref: string;
+  m1RecognitionItems?: PracticeItem[];
+  m1InitialFlowState?: M1FlowState;
   m4InitialFlowState?: {
     flowStage: M4PracticeStage | "length_test" | "pitch_test" | "complete";
     skipLength: boolean;
@@ -86,6 +103,12 @@ const M4_PRACTICE_EXPLANATION_SEGMENTS = [
 
 const M4_LENGTH_TOKENS = ["짧음", "길음"] as const;
 const M4_PITCH_TOKENS = ["높음", "낮음"] as const;
+const M1_RECOGNITION_SUCCESS_THRESHOLD = 3;
+const M1_RECOGNITION_FAILURE_THRESHOLD = 3;
+const M1_FAMILIARIZATION_GUIDANCE = "그림 카드를 눌러 단어를 듣고 익혀요.";
+const M1_RECOGNITION_GUIDANCE = "소리 듣기 버튼을 누르고 들리는 소리와 같은 그림을 골라요.";
+const M1_RECOGNITION_COMPLETE_TEXT =
+  "사전 학습을 완료했습니다. 이제 연습 단계로 이동 버튼을 누르세요.";
 
 function normalizeTokens(
   trainingPool: TrainingToken[],
@@ -97,6 +120,15 @@ function normalizeTokens(
 
   return labels.length > 0 ? labels : [...targetLabels];
 }
+
+const DEFAULT_M1_FLOW_STATE: M1FlowState = {
+  stage: "familiarization",
+  familiarizationCompleted: false,
+  recognitionCompleted: false,
+  recognitionLowMastery: false,
+  recognitionCorrectStreak: 0,
+  recognitionIncorrectCount: 0,
+};
 
 export function PracticeRunner({
   sessionId,
@@ -111,16 +143,42 @@ export function PracticeRunner({
   initialPracticeRuns,
   initialPracticeFailures,
   moduleHref,
+  m1RecognitionItems = [],
+  m1InitialFlowState,
   m4InitialFlowState,
 }: PracticeRunnerProps) {
   const router = useRouter();
   const isM4 = moduleCode === "M4";
+  const isM1 = moduleCode === "M1";
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
   const [submitting, setSubmitting] = useState(false);
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const initialM1Flow = m1InitialFlowState ?? DEFAULT_M1_FLOW_STATE;
+  const [m1Stage, setM1Stage] = useState<M1FlowStage>(
+    isM1 ? initialM1Flow.stage : "familiarization",
+  );
+  const [m1Playing, setM1Playing] = useState(false);
+  const [m1RecognitionTarget, setM1RecognitionTarget] = useState<string | null>(null);
+  const [m1RecognitionRunCount, setM1RecognitionRunCount] = useState(0);
+  const [m1RecognitionCorrectStreak, setM1RecognitionCorrectStreak] = useState(
+    initialM1Flow.recognitionCorrectStreak,
+  );
+  const [m1RecognitionIncorrectCount, setM1RecognitionIncorrectCount] = useState(
+    initialM1Flow.recognitionIncorrectCount,
+  );
+  const [m1RecognitionAdvanceReady, setM1RecognitionAdvanceReady] = useState(
+    initialM1Flow.recognitionCompleted,
+  );
+  const [m1RecognitionLowMastery, setM1RecognitionLowMastery] = useState(
+    initialM1Flow.recognitionLowMastery,
+  );
+  const [m1CompletionAnnounced, setM1CompletionAnnounced] = useState(false);
+  const [m1AutoplayDone, setM1AutoplayDone] = useState(
+    !isM1 || initialM1Flow.stage !== "recognition",
+  );
   const [m4Playing, setM4Playing] = useState(false);
   const initialM4Stage =
     m4InitialFlowState?.flowStage === "length_test"
@@ -162,13 +220,13 @@ export function PracticeRunner({
     instructionAudio,
     stimulusText: currentPracticeItem?.prompt,
     stimulusPlaybackType: playbackType,
-    autoplayKey: isM4
+    autoplayKey: isM4 || isM1
       ? ""
       : currentPracticeItem
         ? `${moduleCode}-${currentPracticeItem.id}`
         : `${moduleCode}-practice`,
   });
-  const isPlaying = isM4 ? m4Playing : guidance.isPlaying;
+  const isPlaying = isM4 ? m4Playing : isM1 ? m1Playing : guidance.isPlaying;
   const testStartCopy = getTestStartCopy(
     moduleCode as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5",
   );
@@ -210,6 +268,28 @@ export function PracticeRunner({
     roundState === "idle" || (roundState === "failed" && practiceFailures < 2);
   const isM4PracticeStage =
     m4Stage === "length_practice" || m4Stage === "pitch_practice";
+  const m1RecognitionPool =
+    m1RecognitionItems.length > 0
+      ? m1RecognitionItems
+      : trainingPool.slice(0, 2).map((token) => ({
+          id: `m1-recognition-${token.label}`,
+          prompt: token.label,
+          choices: trainingPool.slice(0, 2).map((item) => item.label),
+          choiceImageKeys: trainingPool.slice(0, 2).map((item) => item.imageKey),
+          correctAnswer: token.label,
+          promptSequence: [token.label],
+        }));
+  const m1CurrentRecognitionItem =
+    m1RecognitionPool.length > 0
+      ? m1RecognitionPool[m1RecognitionRunCount % m1RecognitionPool.length] ?? m1RecognitionPool[0]
+      : null;
+  const m1CardPool =
+    trainingPool.length > 0
+      ? trainingPool
+      : [
+          { label: "바", imageKey: "ba" },
+          { label: "다", imageKey: "da" },
+        ];
 
   useEffect(() => {
     if (
@@ -272,6 +352,182 @@ export function PracticeRunner({
       window.clearTimeout(timeoutId);
     };
   }, [isM4, m4CompletionAnnounced, m4Playing, m4RecognitionAdvanceReady]);
+
+  useEffect(() => {
+    if (
+      !isM1 ||
+      m1Stage !== "recognition" ||
+      m1AutoplayDone ||
+      m1Playing ||
+      m1RecognitionAdvanceReady
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        setM1Playing(true);
+        try {
+          await speakText(M1_RECOGNITION_GUIDANCE, { preferLangPrefix: "ko" });
+        } finally {
+          setM1Playing(false);
+          setM1AutoplayDone(true);
+        }
+      })();
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    isM1,
+    m1AutoplayDone,
+    m1Playing,
+    m1RecognitionAdvanceReady,
+    m1Stage,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isM1 ||
+      !m1RecognitionAdvanceReady ||
+      m1RecognitionLowMastery ||
+      m1CompletionAnnounced ||
+      m1Playing
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        setM1Playing(true);
+        try {
+          await speakText(M1_RECOGNITION_COMPLETE_TEXT, {
+            preferLangPrefix: "ko",
+          });
+        } finally {
+          setM1Playing(false);
+          setM1CompletionAnnounced(true);
+        }
+      })();
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    isM1,
+    m1CompletionAnnounced,
+    m1Playing,
+    m1RecognitionAdvanceReady,
+    m1RecognitionLowMastery,
+  ]);
+
+  async function saveM1FlowState(nextState: M1FlowState) {
+    const response = await fetch(
+      `/api/session/${sessionId}/module/${moduleCode}/progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "progress",
+          lastItemIndex: 0,
+          correctCount: 0,
+          itemCount: 0,
+          responseLog: JSON.stringify({
+            kind: "m1-flow-state",
+            ...nextState,
+          }),
+        }),
+      },
+    );
+
+    return response.ok;
+  }
+
+  async function playM1Guidance(text: string) {
+    if (m1Playing) {
+      return;
+    }
+
+    setM1Playing(true);
+    try {
+      await speakText(text, { preferLangPrefix: "ko" });
+    } finally {
+      setM1Playing(false);
+    }
+  }
+
+  async function playM1Token(token: string) {
+    if (m1Playing) {
+      return;
+    }
+
+    setM1Playing(true);
+    try {
+      await speakText(token, { preferLangPrefix: "ko" });
+    } finally {
+      setM1Playing(false);
+    }
+  }
+
+  async function playM1RecognitionPrompt() {
+    if (!m1CurrentRecognitionItem || m1Playing || m1RecognitionTarget) {
+      return;
+    }
+
+    setM1Playing(true);
+    try {
+      await speakText(m1CurrentRecognitionItem.prompt, { preferLangPrefix: "ko" });
+      setM1RecognitionTarget(m1CurrentRecognitionItem.correctAnswer);
+      setM1RecognitionRunCount((current) => current + 1);
+    } finally {
+      setM1Playing(false);
+    }
+  }
+
+  async function handleM1RecognitionChoice(choice: string) {
+    if (!m1RecognitionTarget || m1Playing) {
+      return;
+    }
+
+    const isCorrect = choice === m1RecognitionTarget;
+    const nextCorrectStreak = isCorrect ? m1RecognitionCorrectStreak + 1 : 0;
+    const nextIncorrectCount = isCorrect
+      ? m1RecognitionIncorrectCount
+      : m1RecognitionIncorrectCount + 1;
+    const lowMastery = nextIncorrectCount >= M1_RECOGNITION_FAILURE_THRESHOLD;
+    const completed =
+      nextCorrectStreak >= M1_RECOGNITION_SUCCESS_THRESHOLD || lowMastery;
+
+    setM1Playing(true);
+    try {
+      await playFeedbackTone(isCorrect ? "correct" : "incorrect");
+    } finally {
+      setM1Playing(false);
+    }
+
+    setM1RecognitionTarget(null);
+    setM1RecognitionCorrectStreak(nextCorrectStreak);
+    setM1RecognitionIncorrectCount(nextIncorrectCount);
+    setM1RecognitionLowMastery(lowMastery);
+
+    if (!completed) {
+      return;
+    }
+
+    setM1RecognitionAdvanceReady(true);
+    await saveM1FlowState({
+      stage: "recognition",
+      familiarizationCompleted: true,
+      recognitionCompleted: true,
+      recognitionLowMastery: lowMastery,
+      recognitionCorrectStreak: nextCorrectStreak,
+      recognitionIncorrectCount: nextIncorrectCount,
+    });
+  }
 
   function resetM4RecognitionState() {
     setM4RecognitionTarget(null);
@@ -631,6 +887,20 @@ export function PracticeRunner({
           practiceRuns: nextRuns,
           practiceFailures: nextFailures,
           passed,
+          trainingMasteryResult:
+            isM1 && m1RecognitionLowMastery ? "low" : passed ? "ok" : undefined,
+          responseLog:
+            isM1
+              ? JSON.stringify({
+                  kind: "m1-flow-state",
+                  stage: "practice",
+                  familiarizationCompleted: true,
+                  recognitionCompleted: true,
+                  recognitionLowMastery: m1RecognitionLowMastery,
+                  recognitionCorrectStreak: m1RecognitionCorrectStreak,
+                  recognitionIncorrectCount: m1RecognitionIncorrectCount,
+                })
+              : undefined,
         }),
       },
     );
@@ -910,6 +1180,171 @@ export function PracticeRunner({
     );
   }
 
+  if (isM1) {
+    const renderM1Card = (
+      token: TrainingToken,
+      onClick: () => void,
+      disabled: boolean,
+    ) => (
+      <ChildChoiceCard
+        key={token.label}
+        label={token.label}
+        imageKey={token.imageKey}
+        hideLabel
+        onClick={onClick}
+        disabled={disabled}
+      />
+    );
+
+    if (m1Stage === "familiarization") {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader
+            stageLabel="사전 학습 단계"
+            instructionLine="그림을 누르면 말이 나와요"
+          />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <div className="flex items-start justify-between gap-6">
+              <div className="space-y-1 self-start text-sm leading-7 text-[var(--muted)]">
+                <p>검사에 나오는 단어를 먼저 익히는 단계예요.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void playM1Guidance(M1_FAMILIARIZATION_GUIDANCE);
+                }}
+                disabled={m1Playing}
+                className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                {m1Playing ? "듣는 중..." : "안내 음성 듣기"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {m1CardPool.map((token) =>
+              renderM1Card(
+                token,
+                () => {
+                  void playM1Token(token.label);
+                },
+                m1Playing,
+              ),
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={async () => {
+              setSubmitting(true);
+              setErrorMessage("");
+              const nextState: M1FlowState = {
+                stage: "recognition",
+                familiarizationCompleted: true,
+                recognitionCompleted: false,
+                recognitionLowMastery: false,
+                recognitionCorrectStreak: 0,
+                recognitionIncorrectCount: 0,
+              };
+              const saved = await saveM1FlowState(nextState);
+              setSubmitting(false);
+              if (!saved) {
+                setErrorMessage("진행 상태를 저장하지 못했습니다. 다시 시도해 주세요.");
+                return;
+              }
+              setM1Stage("recognition");
+              setM1AutoplayDone(false);
+            }}
+            disabled={submitting || m1Playing}
+            className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+          >
+            다음으로 이동
+          </button>
+        </div>
+      );
+    }
+
+    if (m1Stage === "recognition") {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader stageLabel="연습" instructionLine="소리를 듣고 같은 그림을 골라요" />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <div className="flex items-start justify-between gap-6">
+              <div className="space-y-1 self-start text-sm leading-7 text-[var(--muted)]">
+                <p>소리 듣기 버튼을 누르고 들리는 소리와 같은 그림을 골라요.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void playM1RecognitionPrompt();
+                }}
+                disabled={m1Playing || !!m1RecognitionTarget || m1RecognitionAdvanceReady}
+                className="rounded-[1.2rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {m1Playing ? "듣는 중..." : "소리 듣기"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {m1CardPool.map((token) =>
+              renderM1Card(
+                token,
+                () => {
+                  void handleM1RecognitionChoice(token.label);
+                },
+                m1Playing || !m1RecognitionTarget || m1RecognitionAdvanceReady,
+              ),
+            )}
+          </div>
+
+          {m1RecognitionAdvanceReady ? (
+            <button
+              type="button"
+              onClick={async () => {
+                setSubmitting(true);
+                setErrorMessage("");
+                const nextState: M1FlowState = {
+                  stage: "practice",
+                  familiarizationCompleted: true,
+                  recognitionCompleted: true,
+                  recognitionLowMastery: m1RecognitionLowMastery,
+                  recognitionCorrectStreak: m1RecognitionCorrectStreak,
+                  recognitionIncorrectCount: m1RecognitionIncorrectCount,
+                };
+                const saved = await saveM1FlowState(nextState);
+                setSubmitting(false);
+                if (!saved) {
+                  setErrorMessage("진행 상태를 저장하지 못했습니다. 다시 시도해 주세요.");
+                  return;
+                }
+                setM1Stage("practice");
+              }}
+              disabled={submitting || m1Playing}
+              className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+            >
+              연습 단계로 이동
+            </button>
+          ) : null}
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="space-y-4">
       <ChildStageHeader
@@ -939,26 +1374,43 @@ export function PracticeRunner({
             <p className="text-sm font-semibold">연습 {index + 1}</p>
           </div>
           <div className="mt-4 grid gap-2">
-            {item.choices.map((choice) => (
-              <button
-                key={choice}
-                type="button"
-                onClick={() =>
-                  setAnswers((current) => ({
-                    ...current,
-                    [item.id]: choice,
-                  }))
-                }
-                disabled={isPlaying}
-                className={`rounded-[1rem] border px-4 py-3 text-left text-sm ${
-                  answers[item.id] === choice
-                    ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
-                    : "border-[var(--line)] bg-white"
-                }`}
-              >
-                {choice}
-              </button>
-            ))}
+            {item.choices.map((choice, choiceIndex) =>
+              isM1 ? (
+                <ChildChoiceCard
+                  key={choice}
+                  label={choice}
+                  imageKey={item.choiceImageKeys?.[choiceIndex]}
+                  hideLabel
+                  selected={answers[item.id] === choice}
+                  onClick={() =>
+                    setAnswers((current) => ({
+                      ...current,
+                      [item.id]: choice,
+                    }))
+                  }
+                  disabled={isPlaying}
+                />
+              ) : (
+                <button
+                  key={choice}
+                  type="button"
+                  onClick={() =>
+                    setAnswers((current) => ({
+                      ...current,
+                      [item.id]: choice,
+                    }))
+                  }
+                  disabled={isPlaying}
+                  className={`rounded-[1rem] border px-4 py-3 text-left text-sm ${
+                    answers[item.id] === choice
+                      ? "border-[var(--accent-strong)] bg-[rgba(201,111,59,0.12)]"
+                      : "border-[var(--line)] bg-white"
+                  }`}
+                >
+                  {choice}
+                </button>
+              ),
+            )}
           </div>
         </article>
       ))}

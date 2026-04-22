@@ -943,6 +943,7 @@ export function ModuleRunner({
                 key={choice}
                 label={choice}
                 imageKey={currentItem.choiceImageKeys?.[index]}
+                hideLabel={moduleCode === "M1"}
                 onClick={() => {
                   void submitChoice(choice);
                 }}

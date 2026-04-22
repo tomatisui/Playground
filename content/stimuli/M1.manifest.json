@@ -10,17 +10,63 @@
   "trainingPool": [
     {
       "label": "바",
+      "imageKey": "ba",
       "localAudioPath": "content/audio/m1/ba-anchor.wav",
       "labels": ["provisional_prototype_content", "acoustic_content_not_final", "content_not_final"],
       "notes": "Anchor syllable for the /바/ side of the prototype contrast."
     },
     {
       "label": "다",
+      "imageKey": "da",
       "localAudioPath": "content/audio/m1/da-anchor.wav",
       "labels": ["provisional_prototype_content", "acoustic_content_not_final", "content_not_final"],
       "notes": "Anchor syllable for the /다/ side of the prototype contrast."
     }
   ],
+  "preLearning": {
+    "interaction": "tap_to_hear_word",
+    "recognitionCheck": "two_choice_follow_up",
+    "trainingMasteryThreshold": 0.5,
+    "familiarizationRequired": true,
+    "practiceUsesImageTextChoices": false,
+    "recognitionItems": [
+      {
+        "id": "m1-fc-1",
+        "ageBand": [5, 6],
+        "contentGroup": "familiarization_check",
+        "prompt": "바",
+        "promptSequence": ["바"],
+        "promptAudio": null,
+        "localAudioPath": "content/audio/m1/ba-anchor.wav",
+        "choices": ["바", "다"],
+        "choiceImageKeys": ["ba", "da"],
+        "choiceImages": [],
+        "correctAnswer": "바",
+        "difficultyLevel": "familiarization_check",
+        "placeholder": false,
+        "labels": ["provisional_prototype_content", "acoustic_content_not_final", "content_not_final"],
+        "notes": "M1 familiarization check item using the same /바/-/다/ pool as practice and test."
+      },
+      {
+        "id": "m1-fc-2",
+        "ageBand": [5, 6],
+        "contentGroup": "familiarization_check",
+        "prompt": "다",
+        "promptSequence": ["다"],
+        "promptAudio": null,
+        "localAudioPath": "content/audio/m1/da-anchor.wav",
+        "choices": ["바", "다"],
+        "choiceImageKeys": ["ba", "da"],
+        "choiceImages": [],
+        "correctAnswer": "다",
+        "difficultyLevel": "familiarization_check",
+        "placeholder": false,
+        "labels": ["provisional_prototype_content", "acoustic_content_not_final", "content_not_final"],
+        "notes": "M1 familiarization check item using the same /바/-/다/ pool as practice and test."
+      }
+    ],
+    "notes": "M1 pre-learning reuses the actual /바/-/다/ discrimination pool so the child hears and checks the same targets before practice."
+  },
   "practiceItems": [
     {
       "id": "m1-p1",

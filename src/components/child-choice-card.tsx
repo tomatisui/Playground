@@ -20,12 +20,14 @@ export function ChildChoiceCard({
   onClick,
   disabled,
   selected,
+  hideLabel,
 }: {
   label: string;
   imageKey?: string;
   onClick: () => void;
   disabled?: boolean;
   selected?: boolean;
+  hideLabel?: boolean;
 }) {
   const toneClasses = getToneClasses(imageKey || label);
 
@@ -48,7 +50,9 @@ export function ChildChoiceCard({
           <div className="h-6 w-6 rounded-full bg-white/80" />
           <div className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-white/60" />
         </div>
-        <p className="text-sm font-semibold text-[var(--foreground)]">{label}</p>
+        {hideLabel ? null : (
+          <p className="text-sm font-semibold text-[var(--foreground)]">{label}</p>
+        )}
       </div>
     </button>
   );

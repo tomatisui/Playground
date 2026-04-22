@@ -56,6 +56,49 @@ function parseM4FlowState(responseLog: string | null) {
   }
 }
 
+function parseM1FlowState(responseLog: string | null) {
+  const fallback = {
+    stage: "familiarization" as const,
+    familiarizationCompleted: false,
+    recognitionCompleted: false,
+    recognitionLowMastery: false,
+    recognitionCorrectStreak: 0,
+    recognitionIncorrectCount: 0,
+  };
+
+  if (!responseLog) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(responseLog);
+
+    if (!parsed || typeof parsed !== "object" || parsed.kind !== "m1-flow-state") {
+      return fallback;
+    }
+
+    return {
+      stage:
+        parsed.stage === "recognition" || parsed.stage === "practice"
+          ? parsed.stage
+          : fallback.stage,
+      familiarizationCompleted: Boolean(parsed.familiarizationCompleted),
+      recognitionCompleted: Boolean(parsed.recognitionCompleted),
+      recognitionLowMastery: Boolean(parsed.recognitionLowMastery),
+      recognitionCorrectStreak:
+        typeof parsed.recognitionCorrectStreak === "number"
+          ? parsed.recognitionCorrectStreak
+          : 0,
+      recognitionIncorrectCount:
+        typeof parsed.recognitionIncorrectCount === "number"
+          ? parsed.recognitionIncorrectCount
+          : 0,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function PracticePage({
   params,
 }: {
@@ -169,6 +212,16 @@ export default async function PracticePage({
                   initialPracticeRuns={attempt?.practiceRuns ?? 0}
                   initialPracticeFailures={attempt?.practiceFailures ?? 0}
                   moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
+                  m1RecognitionItems={
+                    definition.moduleCode === "M1"
+                      ? definition.preLearning?.recognitionItems ?? []
+                      : undefined
+                  }
+                  m1InitialFlowState={
+                    definition.moduleCode === "M1"
+                      ? parseM1FlowState(attempt?.responseLog ?? null)
+                      : undefined
+                  }
                   m4InitialFlowState={
                     definition.moduleCode === "M4"
                       ? parseM4FlowState(attempt?.responseLog ?? null)

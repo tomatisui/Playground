@@ -32,6 +32,28 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function parseM1FlowState(responseLog: string | null) {
+  if (!responseLog) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(responseLog);
+
+    if (!parsed || typeof parsed !== "object" || parsed.kind !== "m1-flow-state") {
+      return null;
+    }
+
+    return {
+      familiarizationCompleted: Boolean(parsed.familiarizationCompleted),
+      recognitionCompleted: Boolean(parsed.recognitionCompleted),
+      recognitionLowMastery: Boolean(parsed.recognitionLowMastery),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export default async function AdminPage() {
   const sessions = await prisma.screeningSession.findMany({
     include: {
@@ -407,7 +429,7 @@ export default async function AdminPage() {
                 </div>
 
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
-                  {(["M3", "M3-R"] as const)
+                  {(["M1", "M3", "M3-R"] as const)
                     .filter((moduleCode) =>
                       snapshot.expected_modules.includes(moduleCode),
                     )
@@ -416,10 +438,16 @@ export default async function AdminPage() {
                       const attempt =
                         session.moduleAttempts.find((item) => item.moduleCode === moduleCode) ??
                         null;
+                      const m1FlowState =
+                        moduleCode === "M1"
+                          ? parseM1FlowState(attempt?.responseLog ?? null)
+                          : null;
                       const validationIssues =
                         moduleCode === "M3"
                           ? getM3ValidationIssues(session.ageYears)
-                          : getM3RValidationIssues(session.ageYears);
+                          : moduleCode === "M3-R"
+                            ? getM3RValidationIssues(session.ageYears)
+                            : [];
 
                       return (
                         <div
@@ -427,20 +455,38 @@ export default async function AdminPage() {
                           className="rounded-[1.2rem] border border-[var(--line)] bg-[var(--card-strong)] p-4 text-sm text-[var(--muted)]"
                         >
                           <p className="font-semibold text-[var(--foreground)]">
-                            {moduleCode} sequence debug
+                            {moduleCode} {moduleCode === "M1" ? "flow debug" : "sequence debug"}
                           </p>
                           <p className="mt-2">
                             Familiarization completed:{" "}
-                            {attempt?.practiceRuns ? "yes" : "no"}
+                            {moduleCode === "M1"
+                              ? m1FlowState?.familiarizationCompleted
+                                ? "yes"
+                                : "no"
+                              : attempt?.practiceRuns
+                                ? "yes"
+                                : "no"}
                           </p>
                           <p className="mt-2">
                             Training mastery result:{" "}
-                            {!attempt?.practiceRuns
-                              ? "not_started"
-                              : (attempt.practiceFailures ?? 0) > 0
-                                ? "low_or_watch"
-                                : "met_or_proceeded"}
+                            {moduleCode === "M1"
+                              ? !m1FlowState?.recognitionCompleted
+                                ? "not_started"
+                                : m1FlowState.recognitionLowMastery
+                                  ? "low"
+                                  : "met"
+                              : !attempt?.practiceRuns
+                                ? "not_started"
+                                : (attempt.practiceFailures ?? 0) > 0
+                                  ? "low_or_watch"
+                                  : "met_or_proceeded"}
                           </p>
+                          {moduleCode === "M1" ? (
+                            <p className="mt-2">
+                              Recognition completed:{" "}
+                              {m1FlowState?.recognitionCompleted ? "yes" : "no"}
+                            </p>
+                          ) : null}
                           <p className="mt-2">
                             Fallback audio used:{" "}
                             {getModuleAssetReadiness(moduleCode, session.ageYears).fallbackAudioInUse
@@ -449,15 +495,21 @@ export default async function AdminPage() {
                           </p>
                           <p className="mt-2">
                             Active visible choice count:{" "}
-                            {getModuleVisibleChoiceCount(moduleCode, session.ageYears)}
+                            {moduleCode === "M1"
+                              ? "image-only"
+                              : getModuleVisibleChoiceCount(moduleCode, session.ageYears)}
                           </p>
                           <p className="mt-2">
                             Practice uses image+text choices:{" "}
-                            {definition?.preLearning?.practiceUsesImageTextChoices ? "yes" : "no"}
+                            {moduleCode === "M1"
+                              ? "no"
+                              : definition?.preLearning?.practiceUsesImageTextChoices
+                                ? "yes"
+                                : "no"}
                           </p>
                           <p className="mt-2">
                             Malformed config flags:{" "}
-                            {validationIssues.length === 0
+                            {(moduleCode === "M1" ? 0 : validationIssues.length) === 0
                               ? "none"
                               : `${validationIssues.length} flag(s)`}
                           </p>
