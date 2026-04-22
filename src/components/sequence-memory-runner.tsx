@@ -360,7 +360,8 @@ export function SequencePracticeRunner({
   const [playingFamiliarizationKey, setPlayingFamiliarizationKey] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const familiarizationGuidance = useChildAudioGuidance({
-    instructionText: "그림 카드를 눌러 단어를 듣고 익혀요.",
+    instructionText:
+      "그림 카드를 눌러 단어를 듣고 익혀요. 다 익히면 다음으로 이동 버튼을 눌러요.",
     autoplayKey: `${moduleCode}-familiarization`,
   });
 
@@ -627,12 +628,12 @@ export function SequencePracticeRunner({
         <article className="space-y-4 rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
           <ChildStageHeader
             stageLabel="사전 학습 단계"
-            instructionLine="그림을 누르면 말이 나와요"
+            instructionLine="그림 카드를 눌러 단어를 듣고 익혀요"
           />
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-sm leading-7 text-[var(--muted)]">
-                검사에 나오는 단어를 먼저 익히는 단계예요
+                다 익히면 다음으로 이동 버튼을 눌러요
               </p>
             </div>
             <ChildAudioGuidanceControls

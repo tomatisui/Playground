@@ -74,16 +74,24 @@ export function getPracticeStartCopy(
     M5: "짧은 연습 뒤에 처음 소리를 찾는 검사를 시작합니다.",
   };
 
+  const isFirstMemoryPractice = !previousLabel && moduleCode === "M3";
+
   return {
-    title: previousLabel
+    title: isFirstMemoryPractice
+      ? "기억하기 검사 연습을 시작합니다"
+      : previousLabel
       ? `${moduleLabel} 연습을 시작해요`
       : "첫 번째 검사 연습을 시작해요",
-    body: previousLabel
+    body: isFirstMemoryPractice
+      ? "준비가 되면 연습 시작 버튼을 누르세요."
+      : previousLabel
       ? `${previousLabel} 검사가 끝났어요. 이제 ${moduleLabel} 연습을 시작합니다.`
       : `${moduleLabel}부터 차례대로 진행합니다.`,
     bullets: [previews[moduleCode]],
     primaryLabel: "연습 시작",
-    audioText: previousLabel
+    audioText: isFirstMemoryPractice
+      ? "기억하기 검사 연습을 시작합니다. 준비가 되면 연습 시작 버튼을 누르세요."
+      : previousLabel
       ? `${previousLabel} 검사가 끝났어요. 이제 ${moduleLabel} 연습을 시작합니다. ${previews[moduleCode]}`
       : `첫 번째로 ${moduleLabel} 연습을 시작합니다. ${previews[moduleCode]}`,
   };
