@@ -21,12 +21,16 @@ import {
 export const dynamic = "force-dynamic";
 
 function parseM4AttemptState(responseLog: string | null) {
+  const fallback = {
+    flowStage: "length_test" as const,
+    skipLength: false,
+    skipPitch: false,
+    lengthResponses: [] as string[],
+    pitchResponses: [] as string[],
+  };
+
   if (!responseLog) {
-    return {
-      skipLength: false,
-      skipPitch: false,
-      testResponses: [] as string[],
-    };
+    return fallback;
   }
 
   try {
@@ -34,30 +38,34 @@ function parseM4AttemptState(responseLog: string | null) {
 
     if (Array.isArray(parsed)) {
       return {
-        skipLength: false,
-        skipPitch: false,
-        testResponses: parsed.filter((item: unknown): item is string => typeof item === "string"),
+        ...fallback,
+        lengthResponses: parsed.filter(
+          (item: unknown): item is string => typeof item === "string",
+        ),
       };
     }
 
     if (parsed && typeof parsed === "object") {
-      const testResponses = Array.isArray(parsed.testResponses)
-        ? parsed.testResponses.filter((item: unknown): item is string => typeof item === "string")
-        : [];
-
       return {
+        flowStage:
+          typeof parsed.flowStage === "string" ? parsed.flowStage : fallback.flowStage,
         skipLength: Boolean(parsed.skipLength),
         skipPitch: Boolean(parsed.skipPitch),
-        testResponses,
+        lengthResponses: Array.isArray(parsed.lengthResponses)
+          ? parsed.lengthResponses.filter(
+              (item: unknown): item is string => typeof item === "string",
+            )
+          : [],
+        pitchResponses: Array.isArray(parsed.pitchResponses)
+          ? parsed.pitchResponses.filter(
+              (item: unknown): item is string => typeof item === "string",
+            )
+          : [],
       };
     }
   } catch {}
 
-  return {
-    skipLength: false,
-    skipPitch: false,
-    testResponses: [] as string[],
-  };
+  return fallback;
 }
 
 export default async function ModulePage({
@@ -193,6 +201,20 @@ export default async function ModulePage({
       ? parseM4AttemptState(attempt?.responseLog ?? null)
       : null;
 
+  if (definition.moduleCode === "M4" && m4AttemptState?.flowStage === "complete") {
+    redirect(nextHref);
+  }
+
+  if (
+    definition.moduleCode === "M4" &&
+    m4AttemptState &&
+    m4AttemptState.flowStage !== "length_test" &&
+    m4AttemptState.flowStage !== "pitch_test" &&
+    m4AttemptState.flowStage !== "complete"
+  ) {
+    redirect(`/session/${session.id}/practice`);
+  }
+
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
       <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
@@ -221,12 +243,24 @@ export default async function ModulePage({
                 initialIndex={attempt?.completedAt ? (definition.testItems ?? []).length : attempt?.lastItemIndex ?? 0}
                 initialResponses={
                   definition.moduleCode === "M4"
-                    ? m4AttemptState?.testResponses ?? []
+                    ? m4AttemptState?.flowStage === "pitch_test"
+                      ? m4AttemptState.pitchResponses
+                      : m4AttemptState?.lengthResponses ?? []
                     : parseResponseLog(attempt?.responseLog ?? null)
                 }
                 initialAssistCount={attempt?.caregiverAssistCount ?? 0}
                 m4SkipLength={m4AttemptState?.skipLength ?? false}
                 m4SkipPitch={m4AttemptState?.skipPitch ?? false}
+                m4FlowStage={
+                  definition.moduleCode === "M4"
+                    ? m4AttemptState?.flowStage === "pitch_test"
+                      ? "pitch_test"
+                      : "length_test"
+                    : undefined
+                }
+                m4LengthResponses={m4AttemptState?.lengthResponses ?? []}
+                m4PitchResponses={m4AttemptState?.pitchResponses ?? []}
+                m4PracticeHref={`/session/${session.id}/practice`}
                 nextHref={nextHref}
               />
             )}

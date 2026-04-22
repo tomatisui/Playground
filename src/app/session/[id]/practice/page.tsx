@@ -13,6 +13,49 @@ import {
 
 export const dynamic = "force-dynamic";
 
+function parseM4FlowState(responseLog: string | null) {
+  const fallback = {
+    flowStage: "length_familiarization" as const,
+    skipLength: false,
+    skipPitch: false,
+    lengthResponses: [] as string[],
+    pitchResponses: [] as string[],
+  };
+
+  if (!responseLog) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(responseLog);
+
+    if (!parsed || typeof parsed !== "object") {
+      return fallback;
+    }
+
+    const flowStage =
+      typeof parsed.flowStage === "string" ? parsed.flowStage : fallback.flowStage;
+
+    return {
+      flowStage,
+      skipLength: Boolean(parsed.skipLength),
+      skipPitch: Boolean(parsed.skipPitch),
+      lengthResponses: Array.isArray(parsed.lengthResponses)
+        ? parsed.lengthResponses.filter(
+            (item: unknown): item is string => typeof item === "string",
+          )
+        : [],
+      pitchResponses: Array.isArray(parsed.pitchResponses)
+        ? parsed.pitchResponses.filter(
+            (item: unknown): item is string => typeof item === "string",
+          )
+        : [],
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function PracticePage({
   params,
 }: {
@@ -126,6 +169,11 @@ export default async function PracticePage({
                   initialPracticeRuns={attempt?.practiceRuns ?? 0}
                   initialPracticeFailures={attempt?.practiceFailures ?? 0}
                   moduleHref={`/session/${session.id}/module/${definition.moduleCode}`}
+                  m4InitialFlowState={
+                    definition.moduleCode === "M4"
+                      ? parseM4FlowState(attempt?.responseLog ?? null)
+                      : undefined
+                  }
                 />
               )}
             </div>

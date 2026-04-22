@@ -38,16 +38,24 @@ type PracticeRunnerProps = {
   initialPracticeRuns: number;
   initialPracticeFailures: number;
   moduleHref: string;
+  m4InitialFlowState?: {
+    flowStage: M4PracticeStage | "length_test" | "pitch_test" | "complete";
+    skipLength: boolean;
+    skipPitch: boolean;
+    lengthResponses: string[];
+    pitchResponses: string[];
+  };
 };
 
 type M4PracticeStage =
   | "length_familiarization"
   | "length_recognition"
   | "length_practice"
+  | "length_test_transition"
   | "pitch_familiarization"
   | "pitch_recognition"
   | "pitch_practice"
-  | "pre_test_transition";
+  | "pitch_test_transition";
 
 const M4_PATTERN_START_DELAY_MS = 1000;
 const M4_RECOGNITION_SUCCESS_THRESHOLD = 3;
@@ -103,6 +111,7 @@ export function PracticeRunner({
   initialPracticeRuns,
   initialPracticeFailures,
   moduleHref,
+  m4InitialFlowState,
 }: PracticeRunnerProps) {
   const router = useRouter();
   const isM4 = moduleCode === "M4";
@@ -113,8 +122,16 @@ export function PracticeRunner({
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [m4Playing, setM4Playing] = useState(false);
+  const initialM4Stage =
+    m4InitialFlowState?.flowStage === "length_test"
+      ? "length_test_transition"
+      : m4InitialFlowState?.flowStage === "pitch_test"
+        ? "pitch_test_transition"
+        : m4InitialFlowState?.flowStage === "complete"
+          ? "pitch_test_transition"
+          : m4InitialFlowState?.flowStage ?? "length_familiarization";
   const [m4Stage, setM4Stage] = useState<M4PracticeStage>(
-    isM4 ? "length_familiarization" : "length_familiarization",
+    isM4 ? initialM4Stage : "length_familiarization",
   );
   const [m4RecognitionTarget, setM4RecognitionTarget] = useState<string | null>(null);
   const [m4RecognitionRunCount, setM4RecognitionRunCount] = useState(0);
@@ -123,8 +140,8 @@ export function PracticeRunner({
   const [m4RecognitionAdvanceReady, setM4RecognitionAdvanceReady] = useState(false);
   const [m4CompletionAnnounced, setM4CompletionAnnounced] = useState(false);
   const [m4SkippedSections, setM4SkippedSections] = useState({
-    length: false,
-    pitch: false,
+    length: m4InitialFlowState?.skipLength ?? false,
+    pitch: m4InitialFlowState?.skipPitch ?? false,
   });
   const [m4PracticeAnswers, setM4PracticeAnswers] = useState({
     length: "",
@@ -135,6 +152,10 @@ export function PracticeRunner({
     pitch: false,
   });
   const [m4AutoplayStages, setM4AutoplayStages] = useState<string[]>([]);
+  const [m4StoredResponses, setM4StoredResponses] = useState({
+    length: m4InitialFlowState?.lengthResponses ?? [],
+    pitch: m4InitialFlowState?.pitchResponses ?? [],
+  });
   const currentPracticeItem = items.find((item) => !answers[item.id]) ?? items[0];
   const guidance = useChildAudioGuidance({
     instructionText: instructionText ?? instructions,
@@ -409,9 +430,15 @@ export function PracticeRunner({
     }
   }
 
-  async function saveM4PracticeState(
+  async function saveM4PracticeState({
+    nextFlowStage,
     nextSkippedSections = m4SkippedSections,
-  ) {
+    nextStoredResponses = m4StoredResponses,
+  }: {
+    nextFlowStage: M4PracticeStage | "length_test" | "pitch_test" | "complete";
+    nextSkippedSections?: { length: boolean; pitch: boolean };
+    nextStoredResponses?: { length: string[]; pitch: string[] };
+  }) {
     const nextRuns = practiceRuns + 1;
     const lowMastery = nextSkippedSections.length || nextSkippedSections.pitch;
 
@@ -432,10 +459,12 @@ export function PracticeRunner({
           passed: true,
           trainingMasteryResult: lowMastery ? "low" : "ok",
           responseLog: JSON.stringify({
-            kind: "m4-practice-state",
+            kind: "m4-flow-state",
+            flowStage: nextFlowStage,
             skipLength: nextSkippedSections.length,
             skipPitch: nextSkippedSections.pitch,
-            testResponses: [],
+            lengthResponses: nextStoredResponses.length,
+            pitchResponses: nextStoredResponses.pitch,
           }),
         }),
       },
@@ -448,6 +477,7 @@ export function PracticeRunner({
     }
 
     setPracticeRuns(nextRuns);
+    setM4StoredResponses(nextStoredResponses);
     setSubmitting(false);
     return true;
   }
@@ -484,12 +514,19 @@ export function PracticeRunner({
     }
 
     if (m4CurrentRecognitionKind === "length") {
-      setM4SkippedSections((current) => ({
-        ...current,
+      const nextSkippedSections = {
+        ...m4SkippedSections,
         length: true,
-      }));
+      };
+      setM4SkippedSections(nextSkippedSections);
       resetM4RecognitionState();
-      setM4Stage("pitch_familiarization");
+      const saved = await saveM4PracticeState({
+        nextFlowStage: "pitch_familiarization",
+        nextSkippedSections,
+      });
+      if (saved) {
+        setM4Stage("pitch_familiarization");
+      }
       return;
     }
 
@@ -500,10 +537,33 @@ export function PracticeRunner({
     setM4SkippedSections(nextSkippedSections);
     resetM4RecognitionState();
 
-    const saved = await saveM4PracticeState(nextSkippedSections);
+    const saved = await saveM4PracticeState({
+      nextFlowStage: "pitch_test",
+      nextSkippedSections,
+    });
     if (saved) {
       router.push(moduleHref);
       router.refresh();
+    }
+  }
+
+  async function advanceToLengthTestTransition() {
+    const saved = await saveM4PracticeState({
+      nextFlowStage: "length_test",
+    });
+
+    if (saved) {
+      setM4Stage("length_test_transition");
+    }
+  }
+
+  async function advanceToPitchTestTransition() {
+    const saved = await saveM4PracticeState({
+      nextFlowStage: "pitch_test",
+    });
+
+    if (saved) {
+      setM4Stage("pitch_test_transition");
     }
   }
 
@@ -597,7 +657,11 @@ export function PracticeRunner({
     return true;
   }
 
-  if (isM4 && m4Stage === "pre_test_transition") {
+  if (
+    isM4 &&
+    (m4Stage === "length_test_transition" || m4Stage === "pitch_test_transition")
+  ) {
+    const isLengthTransition = m4Stage === "length_test_transition";
     return (
       <>
         {errorMessage ? (
@@ -606,9 +670,13 @@ export function PracticeRunner({
           </div>
         ) : null}
         <ScreeningTransitionCard
-          screenKey={`test-start-${sessionId}-${moduleCode}`}
+          screenKey={`test-start-${sessionId}-${moduleCode}-${m4Stage}`}
           stageLabel="검사"
-          instructionLine="연습이 끝났어요. 이제 진짜 검사를 시작해요."
+          instructionLine={
+            isLengthTransition
+              ? "길이 연습이 끝났어요. 이제 길이 검사를 시작해요."
+              : "높낮이 연습이 끝났어요. 이제 높낮이 검사를 시작해요."
+          }
           body="준비가 되면 검사 시작 버튼을 눌러 주세요."
           primaryLabel="검사 시작"
           primaryHref={moduleHref}
@@ -819,22 +887,18 @@ export function PracticeRunner({
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={async () => {
-                if (m4CurrentPracticeKind === "length") {
-                  setM4Stage("pitch_familiarization");
-                  return;
-                }
+              <button
+                type="button"
+                onClick={async () => {
+                  if (m4CurrentPracticeKind === "length") {
+                    await advanceToLengthTestTransition();
+                    return;
+                  }
 
-                const saved = await saveM4PracticeState();
-                if (!saved) {
-                  return;
-                }
-                setM4Stage("pre_test_transition");
-              }}
-              disabled={
-                !m4PracticeAnswers[m4CurrentPracticeKind] || submitting || m4Playing
+                  await advanceToPitchTestTransition();
+                }}
+                disabled={
+                  !m4PracticeAnswers[m4CurrentPracticeKind] || submitting || m4Playing
               }
               className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
             >

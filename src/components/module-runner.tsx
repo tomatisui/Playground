@@ -35,6 +35,10 @@ type ModuleRunnerProps = {
   initialAssistCount: number;
   m4SkipLength?: boolean;
   m4SkipPitch?: boolean;
+  m4FlowStage?: "length_test" | "pitch_test";
+  m4LengthResponses?: string[];
+  m4PitchResponses?: string[];
+  m4PracticeHref?: string;
   nextHref: string;
 };
 
@@ -346,6 +350,10 @@ export function ModuleRunner({
   initialAssistCount,
   m4SkipLength = false,
   m4SkipPitch = false,
+  m4FlowStage = "length_test",
+  m4LengthResponses = [],
+  m4PitchResponses = [],
+  m4PracticeHref = "",
   nextHref,
 }: ModuleRunnerProps) {
   const router = useRouter();
@@ -381,7 +389,13 @@ export function ModuleRunner({
       return items;
     }
 
+    const activeGroup: M4SectionGroup =
+      m4FlowStage === "pitch_test" ? "pitch_pattern" : "length_pattern";
+
     return items.filter((item) => {
+      if (item.contentGroup !== activeGroup) {
+        return false;
+      }
       if (item.contentGroup === "length_pattern" && m4SkipLength) {
         return false;
       }
@@ -390,7 +404,7 @@ export function ModuleRunner({
       }
       return true;
     });
-  }, [isM4, items, m4SkipLength, m4SkipPitch]);
+  }, [isM4, items, m4FlowStage, m4SkipLength, m4SkipPitch]);
   const m4Plan = useMemo(() => buildM4RuntimePlan(m4FilteredItems), [m4FilteredItems]);
   const m4State = useMemo(
     () => deriveM4State(m4Plan, responses),
@@ -416,12 +430,22 @@ export function ModuleRunner({
   }, [m4CurrentItem, m4CurrentSection, sessionId]);
 
   const buildM4ResponseLog = useCallback(
-    (nextResponses: string[]) =>
+    ({
+      flowStage,
+      nextLengthResponses,
+      nextPitchResponses,
+    }: {
+      flowStage: "length_test" | "pitch_test" | "complete" | "pitch_familiarization";
+      nextLengthResponses: string[];
+      nextPitchResponses: string[];
+    }) =>
       JSON.stringify({
-        kind: "m4-runtime-state",
+        kind: "m4-flow-state",
+        flowStage,
         skipLength: m4SkipLength,
         skipPitch: m4SkipPitch,
-        testResponses: nextResponses,
+        lengthResponses: nextLengthResponses,
+        pitchResponses: nextPitchResponses,
       }),
     [m4SkipLength, m4SkipPitch],
   );
@@ -478,7 +502,11 @@ export function ModuleRunner({
           type: "complete",
           correctCount: 0,
           itemCount: 0,
-          responseLog: buildM4ResponseLog([]),
+          responseLog: buildM4ResponseLog({
+            flowStage: "complete",
+            nextLengthResponses: m4LengthResponses,
+            nextPitchResponses: m4PitchResponses,
+          }),
           caregiverAssistCount: assistCount,
         }),
       });
@@ -502,14 +530,16 @@ export function ModuleRunner({
     };
   }, [
     assistCount,
-    buildM4ResponseLog,
     isM4,
     m4AutoCompleting,
+    m4LengthResponses,
     m4Plan.sections.length,
+    m4PitchResponses,
     moduleCode,
     nextHref,
     router,
     sessionId,
+    buildM4ResponseLog,
   ]);
 
   async function playM4Explanation() {
@@ -577,34 +607,70 @@ export function ModuleRunner({
     setSaving(true);
     setErrorMessage("");
     const updatedResponses = [...responses, m4ActivePendingChoice];
-    const summary = getM4AccuracySummary(m4Plan, updatedResponses);
     const nextState = deriveM4State(m4Plan, updatedResponses);
-    const payloadBase = {
-      correctCount: summary.correctCount,
-      itemCount: summary.itemCount,
-      responseLog: buildM4ResponseLog(updatedResponses),
-      caregiverAssistCount: assistCount,
-    };
-
     const isComplete = nextState.completed || !getM4CurrentItem(m4Plan, nextState);
+
+    const nextLengthResponses =
+      m4FlowStage === "length_test" ? updatedResponses : m4LengthResponses;
+    const nextPitchResponses =
+      m4FlowStage === "pitch_test" ? updatedResponses : m4PitchResponses;
+
+    const payload = isComplete
+      ? m4FlowStage === "length_test"
+        ? {
+            type: "progress",
+            lastItemIndex: updatedResponses.length,
+            correctCount: getM4AccuracySummary(m4Plan, updatedResponses).correctCount,
+            itemCount: getM4AccuracySummary(m4Plan, updatedResponses).itemCount,
+            responseLog: buildM4ResponseLog({
+              flowStage: "pitch_familiarization",
+              nextLengthResponses,
+              nextPitchResponses,
+            }),
+            caregiverAssistCount: assistCount,
+          }
+        : {
+            type: "complete",
+            correctCount:
+              getM4AccuracySummary(
+                buildM4RuntimePlan(
+                  items.filter((item) => item.contentGroup === "length_pattern"),
+                ),
+                nextLengthResponses,
+              ).correctCount +
+              getM4AccuracySummary(
+                buildM4RuntimePlan(
+                  items.filter((item) => item.contentGroup === "pitch_pattern"),
+                ),
+                nextPitchResponses,
+              ).correctCount,
+            itemCount: nextLengthResponses.length + nextPitchResponses.length,
+            responseLog: buildM4ResponseLog({
+              flowStage: "complete",
+              nextLengthResponses,
+              nextPitchResponses,
+            }),
+            caregiverAssistCount: assistCount,
+          }
+      : {
+          type: "progress",
+          lastItemIndex: updatedResponses.length,
+          correctCount: getM4AccuracySummary(m4Plan, updatedResponses).correctCount,
+          itemCount: getM4AccuracySummary(m4Plan, updatedResponses).itemCount,
+          responseLog: buildM4ResponseLog({
+            flowStage: m4FlowStage,
+            nextLengthResponses,
+            nextPitchResponses,
+          }),
+          caregiverAssistCount: assistCount,
+        };
 
     const response = await fetch(`/api/session/${sessionId}/module/${moduleCode}/progress`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(
-        isComplete
-          ? {
-              type: "complete",
-              ...payloadBase,
-            }
-          : {
-              type: "progress",
-              lastItemIndex: updatedResponses.length,
-              ...payloadBase,
-            },
-      ),
+      body: JSON.stringify(payload),
     });
 
     if (!response.ok) {
@@ -614,7 +680,7 @@ export function ModuleRunner({
     }
 
     if (isComplete) {
-      router.push(nextHref);
+      router.push(m4FlowStage === "length_test" ? m4PracticeHref : nextHref);
       router.refresh();
       return;
     }
