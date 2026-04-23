@@ -307,11 +307,11 @@ export function getM5ValidationIssues(ageYears: number) {
     }
 
     if (item.contentGroup === "M5-B") {
-      if (item.choices.length !== 3) {
-        issues.push(`${item.id}: M5-B items must have 3 choices.`);
+      if (item.choices.length !== 4) {
+        issues.push(`${item.id}: M5-B items must have 4 choices.`);
       }
-      if ((item.promptSequence?.length ?? 0) < 4) {
-        issues.push(`${item.id}: M5-B prompt sequence should include 3 words plus an instruction cue.`);
+      if ((item.promptSequence?.length ?? 0) < 5) {
+        issues.push(`${item.id}: M5-B prompt sequence should include 4 words plus an instruction cue.`);
       }
     }
 

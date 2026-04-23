@@ -40,6 +40,22 @@ type M1FlowState = {
   recognitionIncorrectCount: number;
 };
 
+type M5FlowStage =
+  | "familiarization"
+  | "recognition"
+  | "practice_syllable"
+  | "practice_phoneme";
+
+type M5FlowState = {
+  stage: M5FlowStage;
+  familiarizationCompleted: boolean;
+  recognitionCompleted: boolean;
+  recognitionLowMastery: boolean;
+  recognitionCorrectStreak: number;
+  recognitionIncorrectCount: number;
+  syllableAnswer: string;
+};
+
 type PracticeRunnerProps = {
   sessionId: string;
   moduleCode: string;
@@ -55,6 +71,8 @@ type PracticeRunnerProps = {
   moduleHref: string;
   m1RecognitionItems?: PracticeItem[];
   m1InitialFlowState?: M1FlowState;
+  m5RecognitionItems?: PracticeItem[];
+  m5InitialFlowState?: M5FlowState;
   m4InitialFlowState?: {
     flowStage: M4PracticeStage | "length_test" | "pitch_test" | "complete";
     skipLength: boolean;
@@ -109,6 +127,12 @@ const M1_FAMILIARIZATION_GUIDANCE = "그림 카드를 눌러 단어를 듣고 �
 const M1_RECOGNITION_GUIDANCE = "소리 듣기 버튼을 누르고 들리는 소리와 같은 그림을 골라요.";
 const M1_RECOGNITION_COMPLETE_TEXT =
   "사전 학습을 완료했습니다. 이제 연습 단계로 이동 버튼을 누르세요.";
+const M5_RECOGNITION_SUCCESS_THRESHOLD = 3;
+const M5_RECOGNITION_FAILURE_THRESHOLD = 3;
+const M5_FAMILIARIZATION_GUIDANCE = "그림 카드를 눌러 단어를 듣고 익혀요.";
+const M5_RECOGNITION_GUIDANCE = "소리 듣기 버튼을 누르고 들리는 소리와 같은 그림을 골라요.";
+const M5_RECOGNITION_COMPLETE_TEXT =
+  "사전 학습을 완료했습니다. 이제 연습 단계로 이동 버튼을 누르세요.";
 
 function normalizeTokens(
   trainingPool: TrainingToken[],
@@ -130,6 +154,40 @@ const DEFAULT_M1_FLOW_STATE: M1FlowState = {
   recognitionIncorrectCount: 0,
 };
 
+const DEFAULT_M5_FLOW_STATE: M5FlowState = {
+  stage: "familiarization",
+  familiarizationCompleted: false,
+  recognitionCompleted: false,
+  recognitionLowMastery: false,
+  recognitionCorrectStreak: 0,
+  recognitionIncorrectCount: 0,
+  syllableAnswer: "",
+};
+
+function hashChoiceSeed(value: string) {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return hash >>> 0;
+}
+
+function shuffleStableChoices<T>(values: T[], seedKey: string) {
+  const shuffled = [...values];
+  let seed = hashChoiceSeed(seedKey);
+
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
+    const swapIndex = seed % (index + 1);
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+
+  return shuffled;
+}
+
 export function PracticeRunner({
   sessionId,
   moduleCode,
@@ -145,11 +203,14 @@ export function PracticeRunner({
   moduleHref,
   m1RecognitionItems = [],
   m1InitialFlowState,
+  m5RecognitionItems = [],
+  m5InitialFlowState,
   m4InitialFlowState,
 }: PracticeRunnerProps) {
   const router = useRouter();
   const isM4 = moduleCode === "M4";
   const isM1 = moduleCode === "M1";
+  const isM5 = moduleCode === "M5";
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [practiceRuns, setPracticeRuns] = useState(initialPracticeRuns);
   const [practiceFailures, setPracticeFailures] = useState(initialPracticeFailures);
@@ -157,6 +218,7 @@ export function PracticeRunner({
   const [roundState, setRoundState] = useState<"idle" | "passed" | "failed">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const initialM1Flow = m1InitialFlowState ?? DEFAULT_M1_FLOW_STATE;
+  const initialM5Flow = m5InitialFlowState ?? DEFAULT_M5_FLOW_STATE;
   const [m1Stage, setM1Stage] = useState<M1FlowStage>(
     isM1 ? initialM1Flow.stage : "familiarization",
   );
@@ -179,6 +241,29 @@ export function PracticeRunner({
   const [m1AutoplayDone, setM1AutoplayDone] = useState(
     !isM1 || initialM1Flow.stage !== "recognition",
   );
+  const [m5Stage, setM5Stage] = useState<M5FlowStage>(
+    isM5 ? initialM5Flow.stage : "familiarization",
+  );
+  const [m5Playing, setM5Playing] = useState(false);
+  const [m5RecognitionTarget, setM5RecognitionTarget] = useState<string | null>(null);
+  const [m5RecognitionRunCount, setM5RecognitionRunCount] = useState(0);
+  const [m5RecognitionCorrectStreak, setM5RecognitionCorrectStreak] = useState(
+    initialM5Flow.recognitionCorrectStreak,
+  );
+  const [m5RecognitionIncorrectCount, setM5RecognitionIncorrectCount] = useState(
+    initialM5Flow.recognitionIncorrectCount,
+  );
+  const [m5RecognitionAdvanceReady, setM5RecognitionAdvanceReady] = useState(
+    initialM5Flow.recognitionCompleted,
+  );
+  const [m5RecognitionLowMastery, setM5RecognitionLowMastery] = useState(
+    initialM5Flow.recognitionLowMastery,
+  );
+  const [m5CompletionAnnounced, setM5CompletionAnnounced] = useState(false);
+  const [m5AutoplayDone, setM5AutoplayDone] = useState(
+    !isM5 || initialM5Flow.stage !== "recognition",
+  );
+  const [m5SyllableAnswer, setM5SyllableAnswer] = useState(initialM5Flow.syllableAnswer);
   const [m4Playing, setM4Playing] = useState(false);
   const initialM4Stage =
     m4InitialFlowState?.flowStage === "length_test"
@@ -226,7 +311,13 @@ export function PracticeRunner({
         ? `${moduleCode}-${currentPracticeItem.id}`
         : `${moduleCode}-practice`,
   });
-  const isPlaying = isM4 ? m4Playing : isM1 ? m1Playing : guidance.isPlaying;
+  const isPlaying = isM4
+    ? m4Playing
+    : isM1
+      ? m1Playing
+      : isM5
+        ? m5Playing
+        : guidance.isPlaying;
   const testStartCopy = getTestStartCopy(
     moduleCode as "M1" | "M2" | "M3" | "M3-R" | "M4" | "M5",
   );
@@ -290,6 +381,53 @@ export function PracticeRunner({
           { label: "바", imageKey: "ba" },
           { label: "다", imageKey: "da" },
         ];
+  const m5RecognitionPool =
+    m5RecognitionItems.length > 0
+      ? m5RecognitionItems
+      : trainingPool.map((token) => ({
+          id: `m5-recognition-${token.label}`,
+          prompt: token.label,
+          choices: trainingPool.map((item) => item.label),
+          choiceImageKeys: trainingPool.map((item) => item.imageKey),
+          correctAnswer: token.label,
+          promptSequence: [token.label],
+        }));
+  const m5CurrentRecognitionItem =
+    m5RecognitionPool.length > 0
+      ? m5RecognitionPool[m5RecognitionRunCount % m5RecognitionPool.length] ??
+        m5RecognitionPool[0]
+      : null;
+  const m5CardPool = trainingPool;
+  const m5SyllableItem =
+    items.find((item) => item.contentGroup === "M5-A") ?? items[0] ?? null;
+  const m5PhonemeItem =
+    items.find((item) => item.contentGroup === "M5-B") ?? items[1] ?? null;
+  const m5SyllableChoices = useMemo(() => {
+    if (!m5SyllableItem) {
+      return [];
+    }
+
+    return shuffleStableChoices(
+      m5SyllableItem.choices.map((choice, index) => ({
+        value: choice,
+        imageKey: m5SyllableItem.choiceImageKeys?.[index],
+      })),
+      `${sessionId}:practice:${m5SyllableItem.id}`,
+    );
+  }, [m5SyllableItem, sessionId]);
+  const m5PhonemeChoices = useMemo(() => {
+    if (!m5PhonemeItem) {
+      return [];
+    }
+
+    return shuffleStableChoices(
+      m5PhonemeItem.choices.map((choice, index) => ({
+        value: choice,
+        imageKey: m5PhonemeItem.choiceImageKeys?.[index],
+      })),
+      `${sessionId}:practice:${m5PhonemeItem.id}`,
+    );
+  }, [m5PhonemeItem, sessionId]);
 
   useEffect(() => {
     if (
@@ -423,6 +561,76 @@ export function PracticeRunner({
     m1RecognitionLowMastery,
   ]);
 
+  useEffect(() => {
+    if (
+      !isM5 ||
+      m5Stage !== "recognition" ||
+      m5AutoplayDone ||
+      m5Playing ||
+      m5RecognitionAdvanceReady
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        setM5Playing(true);
+        try {
+          await speakText(M5_RECOGNITION_GUIDANCE, { preferLangPrefix: "ko" });
+        } finally {
+          setM5Playing(false);
+          setM5AutoplayDone(true);
+        }
+      })();
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    isM5,
+    m5AutoplayDone,
+    m5Playing,
+    m5RecognitionAdvanceReady,
+    m5Stage,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isM5 ||
+      !m5RecognitionAdvanceReady ||
+      m5RecognitionLowMastery ||
+      m5CompletionAnnounced ||
+      m5Playing
+    ) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void (async () => {
+        setM5Playing(true);
+        try {
+          await speakText(M5_RECOGNITION_COMPLETE_TEXT, {
+            preferLangPrefix: "ko",
+          });
+        } finally {
+          setM5Playing(false);
+          setM5CompletionAnnounced(true);
+        }
+      })();
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [
+    isM5,
+    m5CompletionAnnounced,
+    m5Playing,
+    m5RecognitionAdvanceReady,
+    m5RecognitionLowMastery,
+  ]);
+
   async function saveM1FlowState(nextState: M1FlowState) {
     const response = await fetch(
       `/api/session/${sessionId}/module/${moduleCode}/progress`,
@@ -526,6 +734,113 @@ export function PracticeRunner({
       recognitionLowMastery: lowMastery,
       recognitionCorrectStreak: nextCorrectStreak,
       recognitionIncorrectCount: nextIncorrectCount,
+    });
+  }
+
+  async function saveM5FlowState(nextState: M5FlowState) {
+    const response = await fetch(
+      `/api/session/${sessionId}/module/${moduleCode}/progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "progress",
+          lastItemIndex: 0,
+          correctCount: 0,
+          itemCount: 0,
+          responseLog: JSON.stringify({
+            kind: "m5-flow-state",
+            ...nextState,
+          }),
+        }),
+      },
+    );
+
+    return response.ok;
+  }
+
+  async function playM5Guidance(text: string) {
+    if (m5Playing) {
+      return;
+    }
+
+    setM5Playing(true);
+    try {
+      await speakText(text, { preferLangPrefix: "ko" });
+    } finally {
+      setM5Playing(false);
+    }
+  }
+
+  async function playM5Token(token: string) {
+    if (m5Playing) {
+      return;
+    }
+
+    setM5Playing(true);
+    try {
+      await speakText(token, { preferLangPrefix: "ko" });
+    } finally {
+      setM5Playing(false);
+    }
+  }
+
+  async function playM5RecognitionPrompt() {
+    if (!m5CurrentRecognitionItem || m5Playing || m5RecognitionTarget) {
+      return;
+    }
+
+    setM5Playing(true);
+    try {
+      await speakText(m5CurrentRecognitionItem.prompt, { preferLangPrefix: "ko" });
+      setM5RecognitionTarget(m5CurrentRecognitionItem.correctAnswer);
+      setM5RecognitionRunCount((current) => current + 1);
+    } finally {
+      setM5Playing(false);
+    }
+  }
+
+  async function handleM5RecognitionChoice(choice: string) {
+    if (!m5RecognitionTarget || m5Playing) {
+      return;
+    }
+
+    const isCorrect = choice === m5RecognitionTarget;
+    const nextCorrectStreak = isCorrect ? m5RecognitionCorrectStreak + 1 : 0;
+    const nextIncorrectCount = isCorrect
+      ? m5RecognitionIncorrectCount
+      : m5RecognitionIncorrectCount + 1;
+    const lowMastery = nextIncorrectCount >= M5_RECOGNITION_FAILURE_THRESHOLD;
+    const completed =
+      nextCorrectStreak >= M5_RECOGNITION_SUCCESS_THRESHOLD || lowMastery;
+
+    setM5Playing(true);
+    try {
+      await playFeedbackTone(isCorrect ? "correct" : "incorrect");
+    } finally {
+      setM5Playing(false);
+    }
+
+    setM5RecognitionTarget(null);
+    setM5RecognitionCorrectStreak(nextCorrectStreak);
+    setM5RecognitionIncorrectCount(nextIncorrectCount);
+    setM5RecognitionLowMastery(lowMastery);
+
+    if (!completed) {
+      return;
+    }
+
+    setM5RecognitionAdvanceReady(true);
+    await saveM5FlowState({
+      stage: "recognition",
+      familiarizationCompleted: true,
+      recognitionCompleted: true,
+      recognitionLowMastery: lowMastery,
+      recognitionCorrectStreak: nextCorrectStreak,
+      recognitionIncorrectCount: nextIncorrectCount,
+      syllableAnswer: "",
     });
   }
 
@@ -860,6 +1175,147 @@ export function PracticeRunner({
     }
   }
 
+  async function advanceM5ToRecognition() {
+    setSubmitting(true);
+    setErrorMessage("");
+    const nextState: M5FlowState = {
+      stage: "recognition",
+      familiarizationCompleted: true,
+      recognitionCompleted: false,
+      recognitionLowMastery: false,
+      recognitionCorrectStreak: 0,
+      recognitionIncorrectCount: 0,
+      syllableAnswer: "",
+    };
+    const saved = await saveM5FlowState(nextState);
+    setSubmitting(false);
+    if (!saved) {
+      setErrorMessage("진행 상태를 저장하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
+    setM5Stage("recognition");
+    setM5AutoplayDone(false);
+  }
+
+  async function advanceM5ToSyllablePractice() {
+    setSubmitting(true);
+    setErrorMessage("");
+    const nextState: M5FlowState = {
+      stage: "practice_syllable",
+      familiarizationCompleted: true,
+      recognitionCompleted: true,
+      recognitionLowMastery: m5RecognitionLowMastery,
+      recognitionCorrectStreak: m5RecognitionCorrectStreak,
+      recognitionIncorrectCount: m5RecognitionIncorrectCount,
+      syllableAnswer: m5SyllableAnswer,
+    };
+    const saved = await saveM5FlowState(nextState);
+    setSubmitting(false);
+    if (!saved) {
+      setErrorMessage("진행 상태를 저장하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
+    setM5Stage("practice_syllable");
+  }
+
+  async function advanceM5ToPhonemePractice() {
+    if (!m5SyllableAnswer) {
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage("");
+    const nextState: M5FlowState = {
+      stage: "practice_phoneme",
+      familiarizationCompleted: true,
+      recognitionCompleted: true,
+      recognitionLowMastery: m5RecognitionLowMastery,
+      recognitionCorrectStreak: m5RecognitionCorrectStreak,
+      recognitionIncorrectCount: m5RecognitionIncorrectCount,
+      syllableAnswer: m5SyllableAnswer,
+    };
+    const saved = await saveM5FlowState(nextState);
+    setSubmitting(false);
+    if (!saved) {
+      setErrorMessage("진행 상태를 저장하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
+    setM5Stage("practice_phoneme");
+  }
+
+  async function submitM5Practice() {
+    if (
+      !m5SyllableItem ||
+      !m5PhonemeItem ||
+      !m5SyllableAnswer ||
+      !answers[m5PhonemeItem.id]
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    setErrorMessage("");
+
+    const phonemeAnswer = answers[m5PhonemeItem.id];
+    const nextAnswers = {
+      [m5SyllableItem.id]: m5SyllableAnswer,
+      [m5PhonemeItem.id]: phonemeAnswer,
+    };
+    const correctCount =
+      (m5SyllableAnswer === m5SyllableItem.correctAnswer ? 1 : 0) +
+      (phonemeAnswer === m5PhonemeItem.correctAnswer ? 1 : 0);
+    const itemCount = 2;
+    const passed = correctCount / itemCount >= trainingMasteryThreshold;
+    const nextRuns = practiceRuns + 1;
+    const nextFailures = passed ? practiceFailures : practiceFailures + 1;
+
+    const response = await fetch(
+      `/api/session/${sessionId}/module/${moduleCode}/progress`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          type: "practice",
+          practiceRuns: nextRuns,
+          practiceFailures: nextFailures,
+          passed,
+          trainingMasteryResult:
+            m5RecognitionLowMastery ? "low" : passed ? "ok" : undefined,
+          responseLog: JSON.stringify({
+            kind: "m5-flow-state",
+            stage: "practice_phoneme",
+            familiarizationCompleted: true,
+            recognitionCompleted: true,
+            recognitionLowMastery: m5RecognitionLowMastery,
+            recognitionCorrectStreak: m5RecognitionCorrectStreak,
+            recognitionIncorrectCount: m5RecognitionIncorrectCount,
+            syllableAnswer: m5SyllableAnswer,
+          }),
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      setSubmitting(false);
+      setErrorMessage("연습 결과를 저장하지 못했습니다. 다시 시도해 주세요.");
+      return;
+    }
+
+    setAnswers(nextAnswers);
+    setPracticeRuns(nextRuns);
+    setPracticeFailures(nextFailures);
+    setSubmitting(false);
+    setRoundState(passed ? "passed" : "failed");
+
+    if (!passed && nextFailures < 2) {
+      setAnswers({});
+      setM5Stage("practice_syllable");
+      setM5SyllableAnswer("");
+    }
+  }
+
   async function submitRound() {
     if (!isComplete) {
       return false;
@@ -888,7 +1344,21 @@ export function PracticeRunner({
           practiceFailures: nextFailures,
           passed,
           trainingMasteryResult:
-            isM1 && m1RecognitionLowMastery ? "low" : passed ? "ok" : undefined,
+            isM1
+              ? m1RecognitionLowMastery
+                ? "low"
+                : passed
+                  ? "ok"
+                  : undefined
+              : isM5
+                ? m5RecognitionLowMastery
+                  ? "low"
+                  : passed
+                    ? "ok"
+                    : undefined
+                : passed
+                  ? "ok"
+                  : undefined,
           responseLog:
             isM1
               ? JSON.stringify({
@@ -900,6 +1370,17 @@ export function PracticeRunner({
                   recognitionCorrectStreak: m1RecognitionCorrectStreak,
                   recognitionIncorrectCount: m1RecognitionIncorrectCount,
                 })
+              : isM5
+                ? JSON.stringify({
+                    kind: "m5-flow-state",
+                    stage: "practice_phoneme",
+                    familiarizationCompleted: true,
+                    recognitionCompleted: true,
+                    recognitionLowMastery: m5RecognitionLowMastery,
+                    recognitionCorrectStreak: m5RecognitionCorrectStreak,
+                    recognitionIncorrectCount: m5RecognitionIncorrectCount,
+                    syllableAnswer: m5SyllableAnswer,
+                  })
               : undefined,
         }),
       },
@@ -1339,6 +1820,290 @@ export function PracticeRunner({
             >
               연습 단계로 이동
             </button>
+          ) : null}
+        </div>
+      );
+    }
+  }
+
+  if (isM5) {
+    const renderM5Card = (
+      token: TrainingToken,
+      onClick: () => void,
+      disabled: boolean,
+    ) => (
+      <ChildChoiceCard
+        key={token.label}
+        label={token.label}
+        imageKey={token.imageKey}
+        hideLabel
+        onClick={onClick}
+        disabled={disabled}
+      />
+    );
+
+    if (m5Stage === "familiarization") {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader
+            stageLabel="사전 학습 단계"
+            instructionLine="그림을 누르면 말이 나와요"
+          />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <div className="flex items-start justify-between gap-6">
+              <div className="space-y-1 self-start text-sm leading-7 text-[var(--muted)]">
+                <p>검사에 나오는 단어를 먼저 익히는 단계예요.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void playM5Guidance(M5_FAMILIARIZATION_GUIDANCE);
+                }}
+                disabled={m5Playing}
+                className="rounded-full border border-[var(--line)] bg-white px-4 py-2 text-sm font-semibold disabled:opacity-50"
+              >
+                {m5Playing ? "듣는 중..." : "안내 음성 듣기"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {m5CardPool.map((token) =>
+              renderM5Card(
+                token,
+                () => {
+                  void playM5Token(token.label);
+                },
+                m5Playing,
+              ),
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              void advanceM5ToRecognition();
+            }}
+            disabled={submitting || m5Playing}
+            className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+          >
+            다음으로 이동
+          </button>
+        </div>
+      );
+    }
+
+    if (m5Stage === "recognition") {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader stageLabel="연습" instructionLine="소리를 듣고 같은 그림을 골라요" />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <div className="flex items-start justify-between gap-6">
+              <div className="space-y-1 self-start text-sm leading-7 text-[var(--muted)]">
+                <p>소리 듣기 버튼을 누르고 들리는 소리와 같은 그림을 골라요.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  void playM5RecognitionPrompt();
+                }}
+                disabled={m5Playing || !!m5RecognitionTarget || m5RecognitionAdvanceReady}
+                className="rounded-[1.2rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {m5Playing ? "듣는 중..." : "소리 듣기"}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            {m5CardPool.map((token) =>
+              renderM5Card(
+                token,
+                () => {
+                  void handleM5RecognitionChoice(token.label);
+                },
+                m5Playing || !m5RecognitionTarget || m5RecognitionAdvanceReady,
+              ),
+            )}
+          </div>
+
+          {m5RecognitionAdvanceReady ? (
+            <button
+              type="button"
+              onClick={() => {
+                void advanceM5ToSyllablePractice();
+              }}
+              disabled={submitting || m5Playing}
+              className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+            >
+              연습 단계로 이동
+            </button>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (m5Stage === "practice_syllable" && m5SyllableItem) {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader stageLabel="연습" instructionLine="처음 소리가 다른 하나를 골라요" />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <ChildAudioGuidanceControls
+              onPlay={guidance.playGuidance}
+              isPlaying={guidance.isPlaying}
+              hasPlayedOnce={guidance.hasPlayedOnce}
+            />
+          </div>
+
+          <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold">연습 1</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {m5SyllableChoices.map((choice) => (
+                <ChildChoiceCard
+                  key={choice.value}
+                  label={choice.value}
+                  imageKey={choice.imageKey}
+                  hideLabel
+                  selected={m5SyllableAnswer === choice.value}
+                  onClick={() => setM5SyllableAnswer(choice.value)}
+                  disabled={isPlaying}
+                />
+              ))}
+            </div>
+          </article>
+
+          <button
+            type="button"
+            onClick={() => {
+              void advanceM5ToPhonemePractice();
+            }}
+            disabled={!m5SyllableAnswer || submitting || isPlaying}
+            className="w-full rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+          >
+            다음 연습으로 이동
+          </button>
+        </div>
+      );
+    }
+
+    if (m5Stage === "practice_phoneme" && m5PhonemeItem) {
+      return (
+        <div className="space-y-4">
+          <ChildStageHeader stageLabel="연습" instructionLine="처음 소리가 다른 하나를 골라요" />
+
+          {errorMessage ? (
+            <div className="rounded-[1.4rem] border border-rose-200 bg-rose-50 p-4 text-sm leading-7 text-rose-900">
+              {errorMessage}
+            </div>
+          ) : null}
+
+          <div className="rounded-[1.4rem] border border-[var(--line)] bg-[var(--card-strong)] p-4">
+            <ChildAudioGuidanceControls
+              onPlay={guidance.playGuidance}
+              isPlaying={guidance.isPlaying}
+              hasPlayedOnce={guidance.hasPlayedOnce}
+            />
+          </div>
+
+          <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-semibold">연습 2</p>
+            </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {m5PhonemeChoices.map((choice) => (
+                <ChildChoiceCard
+                  key={choice.value}
+                  label={choice.value}
+                  imageKey={choice.imageKey}
+                  hideLabel
+                  selected={answers[m5PhonemeItem.id] === choice.value}
+                  onClick={() =>
+                    setAnswers((current) => ({
+                      ...current,
+                      [m5PhonemeItem.id]: choice.value,
+                    }))
+                  }
+                  disabled={isPlaying}
+                />
+              ))}
+            </div>
+          </article>
+
+          {roundState === "failed" ? (
+            <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
+              연습에서 아직 어려움이 보였습니다.
+              {practiceFailures >= 2
+                ? " 두 번 이상 반복되어 품질 플래그로 기록되며, 보호자는 본 과제로 계속 진행할 수 있습니다."
+                : " 같은 방식으로 한 번 더 연습해 보세요."}
+            </div>
+          ) : null}
+
+          {showLegacyPracticeControls ? (
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={() => {
+                  void submitM5Practice();
+                }}
+                disabled={!answers[m5PhonemeItem.id] || submitting || isPlaying}
+                className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"
+              >
+                {submitting ? "저장 중..." : "연습 결과 저장"}
+              </button>
+
+              {roundState === "failed" && practiceFailures < 2 ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRoundState("idle");
+                    setAnswers({});
+                    setM5SyllableAnswer("");
+                    setM5Stage("practice_syllable");
+                    router.refresh();
+                  }}
+                  className="flex-1 rounded-[1.2rem] border border-[var(--line)] bg-white px-4 py-3 text-sm font-semibold"
+                >
+                  다시 연습
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {roundState === "passed" || practiceFailures >= 2 ? (
+            <ScreeningTransitionCard
+              screenKey={`test-start-${sessionId}-${moduleCode}`}
+              stageLabel="검사"
+              instructionLine={testStartCopy.title}
+              body={testStartCopy.body}
+              bullets={testStartCopy.bullets}
+              primaryLabel={testStartCopy.primaryLabel}
+              primaryHref={moduleHref}
+              tone="cool"
+              emphasis="strong"
+            />
           ) : null}
         </div>
       );

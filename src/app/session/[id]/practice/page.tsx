@@ -100,6 +100,54 @@ function parseM1FlowState(responseLog: string | null) {
   }
 }
 
+function parseM5FlowState(responseLog: string | null) {
+  const fallback = {
+    stage: "familiarization" as const,
+    familiarizationCompleted: false,
+    recognitionCompleted: false,
+    recognitionLowMastery: false,
+    recognitionCorrectStreak: 0,
+    recognitionIncorrectCount: 0,
+    syllableAnswer: "",
+  };
+
+  if (!responseLog) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(responseLog);
+
+    if (!parsed || typeof parsed !== "object" || parsed.kind !== "m5-flow-state") {
+      return fallback;
+    }
+
+    return {
+      stage:
+        parsed.stage === "recognition" ||
+        parsed.stage === "practice_syllable" ||
+        parsed.stage === "practice_phoneme"
+          ? parsed.stage
+          : fallback.stage,
+      familiarizationCompleted: Boolean(parsed.familiarizationCompleted),
+      recognitionCompleted: Boolean(parsed.recognitionCompleted),
+      recognitionLowMastery: Boolean(parsed.recognitionLowMastery),
+      recognitionCorrectStreak:
+        typeof parsed.recognitionCorrectStreak === "number"
+          ? parsed.recognitionCorrectStreak
+          : 0,
+      recognitionIncorrectCount:
+        typeof parsed.recognitionIncorrectCount === "number"
+          ? parsed.recognitionIncorrectCount
+          : 0,
+      syllableAnswer:
+        typeof parsed.syllableAnswer === "string" ? parsed.syllableAnswer : "",
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export default async function PracticePage({
   params,
   searchParams,
@@ -233,6 +281,16 @@ export default async function PracticePage({
                   m1InitialFlowState={
                     definition.moduleCode === "M1"
                       ? parseM1FlowState(attempt?.responseLog ?? null)
+                      : undefined
+                  }
+                  m5RecognitionItems={
+                    definition.moduleCode === "M5"
+                      ? definition.preLearning?.recognitionItems ?? []
+                      : undefined
+                  }
+                  m5InitialFlowState={
+                    definition.moduleCode === "M5"
+                      ? parseM5FlowState(attempt?.responseLog ?? null)
                       : undefined
                   }
                   m4InitialFlowState={

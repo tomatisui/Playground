@@ -428,6 +428,22 @@ export function ModuleRunner({
     const sectionItems = m4CurrentSection.levels.flatMap((level) => level.items);
     return getM4ChoiceSet(m4CurrentItem, sectionItems, sessionId);
   }, [m4CurrentItem, m4CurrentSection, sessionId]);
+  const genericCurrentChoices = useMemo(() => {
+    if (isM4 || !currentItem) {
+      return [];
+    }
+
+    const explicitChoices = currentItem.choices.map((choice, index) => ({
+      value: choice,
+      imageKey: currentItem.choiceImageKeys?.[index],
+    }));
+
+    if (moduleCode !== "M5") {
+      return explicitChoices;
+    }
+
+    return shuffleM4Choices(explicitChoices, `${sessionId}:${moduleCode}:${currentItem.id}`);
+  }, [currentItem, isM4, moduleCode, sessionId]);
 
   const buildM4ResponseLog = useCallback(
     ({
@@ -938,14 +954,14 @@ export function ModuleRunner({
           </div>
 
           <div className="mt-4 grid gap-2">
-            {currentItem?.choices.map((choice, index) => (
+            {genericCurrentChoices.map((choice) => (
               <ChildChoiceCard
-                key={choice}
-                label={choice}
-                imageKey={currentItem.choiceImageKeys?.[index]}
-                hideLabel={moduleCode === "M1"}
+                key={choice.value}
+                label={choice.value}
+                imageKey={choice.imageKey}
+                hideLabel={moduleCode === "M1" || moduleCode === "M5"}
                 onClick={() => {
-                  void submitChoice(choice);
+                  void submitChoice(choice.value);
                 }}
                 disabled={saving || guidance.isPlaying}
               />
