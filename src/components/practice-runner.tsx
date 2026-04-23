@@ -2052,7 +2052,7 @@ export function PracticeRunner({
             </div>
           </article>
 
-          {roundState === "failed" ? (
+          {roundState === "failed" && !isM5 ? (
             <div className="rounded-[1.4rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">
               연습에서 아직 어려움이 보였습니다.
               {practiceFailures >= 2

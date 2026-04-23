@@ -968,15 +968,17 @@ export function ModuleRunner({
             ))}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              void recordAssist();
-            }}
-            className="mt-4 rounded-full border border-[var(--line)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]"
-          >
-            보호자 추가 도움이 필요했음 기록
-          </button>
+          {moduleCode === "M5" ? null : (
+            <button
+              type="button"
+              onClick={() => {
+                void recordAssist();
+              }}
+              className="mt-4 rounded-full border border-[var(--line)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]"
+            >
+              보호자 추가 도움이 필요했음 기록
+            </button>
+          )}
         </article>
       )}
     </div>
