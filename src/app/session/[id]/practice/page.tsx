@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PracticeRunner } from "@/components/practice-runner";
 import { SequencePracticeRunner } from "@/components/sequence-memory-runner";
 import { getModuleDefinition } from "@/lib/module-catalog";
+import { getExpectedModules } from "@/lib/screening-config";
 import { buildConsultationHref } from "@/lib/screening-flow";
 import {
   getSessionEngineSnapshot,
@@ -101,10 +102,13 @@ function parseM1FlowState(responseLog: string | null) {
 
 export default async function PracticePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ module?: string }>;
 }) {
   const { id } = await params;
+  const { module: requestedModule } = await searchParams;
   const session = await getSessionWithDetails(id);
 
   if (!session) {
@@ -137,15 +141,24 @@ export default async function PracticePage({
   }
 
   const snapshot = getSessionEngineSnapshot(session);
+  const isDevModuleOverride =
+    process.env.NODE_ENV === "development" &&
+    typeof requestedModule === "string" &&
+    getExpectedModules(session.ageYears).includes(
+      requestedModule as (typeof snapshot.expected_modules)[number],
+    );
+  const targetModule = isDevModuleOverride
+    ? requestedModule!
+    : snapshot.next_module;
 
-  if (!snapshot.next_module) {
+  if (!targetModule) {
     await touchSessionRoute(id, `/session/${id}/report`, null);
     redirect(`/session/${id}/report`);
   }
 
-  await touchSessionRoute(id, `/session/${id}/practice`, snapshot.next_module);
+  await touchSessionRoute(id, `/session/${id}/practice`, targetModule);
 
-  const definition = getModuleDefinition(snapshot.next_module, session.ageYears);
+  const definition = getModuleDefinition(targetModule, session.ageYears);
 
   if (!definition) {
     return (
@@ -174,7 +187,7 @@ export default async function PracticePage({
 
   const attempt =
     session.moduleAttempts.find(
-      (item) => item.moduleCode === snapshot.next_module,
+      (item) => item.moduleCode === targetModule,
     ) ?? null;
 
   return (

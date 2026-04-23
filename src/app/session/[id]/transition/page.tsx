@@ -84,6 +84,10 @@ export default async function SessionTransitionPage({
   const previousModule =
     previous && isModuleCode(previous) ? previous : null;
   const copy = getPracticeStartCopy(targetModule, previousModule);
+  const practiceHref =
+    process.env.NODE_ENV === "development" && module && isModuleCode(module)
+      ? `/session/${session.id}/practice?module=${targetModule}`
+      : `/session/${session.id}/practice`;
 
   await touchSessionRoute(
     id,
@@ -103,7 +107,7 @@ export default async function SessionTransitionPage({
           body={copy.body}
           bullets={copy.bullets}
           primaryLabel={copy.primaryLabel}
-          primaryHref={`/session/${session.id}/practice`}
+          primaryHref={practiceHref}
           audioText={copy.audioText}
           secondaryLabel={previousModule ? `${getModuleKoreanLabel(previousModule)} 다시 보기` : undefined}
           secondaryHref={undefined}
