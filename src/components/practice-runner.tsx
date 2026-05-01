@@ -1669,6 +1669,7 @@ export function PracticeRunner({
     ) => (
       <ChildChoiceCard
         key={token.label}
+        testId="practice-choice-option"
         label={token.label}
         imageKey={token.imageKey}
         hideLabel
@@ -1834,6 +1835,7 @@ export function PracticeRunner({
     ) => (
       <ChildChoiceCard
         key={token.label}
+        testId="practice-choice-option"
         label={token.label}
         imageKey={token.imageKey}
         hideLabel
@@ -1976,7 +1978,10 @@ export function PracticeRunner({
             />
           </div>
 
-          <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <article
+            data-testid="practice-item-card"
+            className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4"
+          >
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold">연습 1</p>
             </div>
@@ -1984,6 +1989,7 @@ export function PracticeRunner({
               {m5SyllableChoices.map((choice) => (
                 <ChildChoiceCard
                   key={choice.value}
+                  testId="practice-choice-option"
                   label={choice.value}
                   imageKey={choice.imageKey}
                   hideLabel
@@ -2028,7 +2034,10 @@ export function PracticeRunner({
             />
           </div>
 
-          <article className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4">
+          <article
+            data-testid="practice-item-card"
+            className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4"
+          >
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-semibold">연습 2</p>
             </div>
@@ -2036,6 +2045,7 @@ export function PracticeRunner({
               {m5PhonemeChoices.map((choice) => (
                 <ChildChoiceCard
                   key={choice.value}
+                  testId="practice-choice-option"
                   label={choice.value}
                   imageKey={choice.imageKey}
                   hideLabel
@@ -2065,6 +2075,7 @@ export function PracticeRunner({
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 type="button"
+                data-testid="practice-continue-button"
                 onClick={() => {
                   void submitM5Practice();
                 }}
@@ -2133,6 +2144,7 @@ export function PracticeRunner({
       {items.map((item, index) => (
         <article
           key={item.id}
+          data-testid="practice-item-card"
           className="rounded-[1.4rem] border border-[var(--line)] bg-white/85 p-4"
         >
           <div className="flex items-center justify-between gap-3">
@@ -2143,6 +2155,7 @@ export function PracticeRunner({
               isM1 ? (
                 <ChildChoiceCard
                   key={choice}
+                  testId="practice-choice-option"
                   label={choice}
                   imageKey={item.choiceImageKeys?.[choiceIndex]}
                   hideLabel
@@ -2159,6 +2172,8 @@ export function PracticeRunner({
                 <button
                   key={choice}
                   type="button"
+                  data-testid={`practice-choice-option-${choiceIndex}`}
+                  aria-pressed={answers[item.id] === choice ? "true" : "false"}
                   onClick={() =>
                     setAnswers((current) => ({
                       ...current,
@@ -2193,6 +2208,7 @@ export function PracticeRunner({
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
+            data-testid="practice-continue-button"
             onClick={submitRound}
             disabled={!isComplete || submitting}
             className="flex-1 rounded-[1.2rem] bg-[var(--accent-strong)] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[var(--accent)] disabled:opacity-50"

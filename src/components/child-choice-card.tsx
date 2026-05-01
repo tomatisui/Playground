@@ -21,6 +21,7 @@ export function ChildChoiceCard({
   disabled,
   selected,
   hideLabel,
+  testId,
 }: {
   label: string;
   imageKey?: string;
@@ -28,12 +29,15 @@ export function ChildChoiceCard({
   disabled?: boolean;
   selected?: boolean;
   hideLabel?: boolean;
+  testId?: string;
 }) {
   const toneClasses = getToneClasses(imageKey || label);
 
   return (
     <button
       type="button"
+      data-testid={testId}
+      aria-pressed={selected ? "true" : "false"}
       onClick={onClick}
       disabled={disabled}
       className={`rounded-[1rem] border px-3 py-3 text-left transition disabled:opacity-50 ${
