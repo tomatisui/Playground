@@ -35,6 +35,7 @@ export default function ConsentPage() {
 
         <Link
           href="/child-info"
+          data-testid="consent-continue-button"
           className="mt-6 inline-flex w-full justify-center rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-sm font-semibold text-white transition hover:bg-[var(--accent)]"
         >
           동의하고 계속

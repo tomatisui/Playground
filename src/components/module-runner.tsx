@@ -957,6 +957,7 @@ export function ModuleRunner({
             {genericCurrentChoices.map((choice) => (
               <ChildChoiceCard
                 key={choice.value}
+                testId="module-choice-option"
                 label={choice.value}
                 imageKey={choice.imageKey}
                 hideLabel={moduleCode === "M1" || moduleCode === "M5"}

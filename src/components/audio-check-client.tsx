@@ -46,6 +46,7 @@ export function AudioCheckClient({ sessionId }: { sessionId: string }) {
           <input type="hidden" name="passed" value="true" />
           <button
             type="submit"
+            data-testid="audio-check-continue-button"
             disabled={guidance.isPlaying}
             className="w-full rounded-[1.3rem] bg-emerald-700 px-5 py-4 text-sm font-semibold text-white disabled:opacity-50"
           >

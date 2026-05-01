@@ -63,6 +63,7 @@ export function ScreeningTransitionCard({
       <div className="flex flex-col gap-3 sm:flex-row">
         <Link
           href={primaryHref}
+          data-testid="practice-start-button"
           className={`flex-1 rounded-[1.2rem] px-4 py-3 text-center text-sm font-semibold text-white ${
             tone === "cool"
               ? "bg-[rgb(58,111,168)]"

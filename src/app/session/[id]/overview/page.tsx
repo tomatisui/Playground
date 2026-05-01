@@ -71,11 +71,12 @@ export default async function SessionOverviewPage({
             <p className="mt-1 text-xs leading-6 text-slate-600">
               개발 환경에서만 보이는 모듈 시작점 점프입니다.
             </p>
-            <div className="mt-3 flex flex-wrap gap-2">
+            <div data-testid="overview-module-cards" className="mt-3 flex flex-wrap gap-2">
               {qaModules.map((moduleCode) => (
                 <a
                   key={moduleCode}
                   href={buildPracticeStartHref(session.id, moduleCode)}
+                  data-testid={`overview-module-card-${moduleCode}`}
                   className="rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
                 >
                   {getModuleKoreanLabel(moduleCode)}

@@ -54,7 +54,10 @@ export default async function SessionTransitionPage({
 
     return (
       <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-        <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+        <section
+          data-testid="transition-screen-container"
+          className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8"
+        >
           <ScreeningTransitionCard
             screenKey={`all-complete-${session.id}`}
             stageLabel="검사"
@@ -99,7 +102,10 @@ export default async function SessionTransitionPage({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-      <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+      <section
+        data-testid="transition-screen-container"
+        className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8"
+      >
         <ScreeningTransitionCard
           screenKey={`practice-start-${session.id}-${targetModule}-${previousModule ?? "first"}`}
           stageLabel="연습"

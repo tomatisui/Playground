@@ -217,7 +217,10 @@ export default async function ModulePage({
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-4xl flex-col px-4 py-6 sm:px-6 sm:py-10">
-      <section className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8">
+      <section
+        data-testid="module-screen-container"
+        className="rounded-[2rem] border border-[var(--line)] bg-[var(--card)] p-6 shadow-[0_24px_80px_rgba(63,41,19,0.08)] sm:p-8"
+      >
         {(definition.testItems?.length ?? 0) > 0 ? (
           <div>
             {definition.moduleCode === "M3" || definition.moduleCode === "M3-R" ? (

@@ -21,6 +21,7 @@ export default function Home() {
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
           <Link
             href="/consent"
+            data-testid="home-start-button"
             className="rounded-[1.3rem] bg-[var(--accent-strong)] px-5 py-4 text-center text-sm font-semibold text-white transition hover:bg-[var(--accent)]"
           >
             보호자 흐름 시작

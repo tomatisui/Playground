@@ -135,6 +135,7 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
         <span className="mb-2 block text-sm font-semibold">아동 이름 또는 식별명</span>
         <input
           name="childLabel"
+          data-testid="child-name-input"
           required
           minLength={1}
           value={childLabel}
@@ -212,6 +213,7 @@ export function ChildInfoForm({ action, seoulToday }: ChildInfoFormProps) {
               태어난 연도
             </span>
             <select
+              data-testid="child-age-selector"
               value={birthYear}
               onChange={(event) => {
                 const value = Number(event.target.value);
